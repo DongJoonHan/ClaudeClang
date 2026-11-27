@@ -8,6 +8,7 @@
 //   단위 테스트  성공률 100% + MC/DC 100%      통합 테스트  성공률 100% + 함수 커버리지 100%
 //   시스템       요구사항 커버리지 100%          Cppcheck 0건(예외 없음), Lizard CCN<=10 / 80라인 이하,
 //   주석         Doxygen 경고 0건 + Human-in-the-Loop 태그
+// 모든 단계가 끝나면 VERReport(ci/scripts/verreport.sh)가 결과를 HTML 보고서 한 곳에 모은다.
 // TDD 테스트는 단위 테스트와 분리해 결과·커버리지만 보고한다.
 
 def buildImage = 'claudeclangbuild:latest'
@@ -141,13 +142,31 @@ node {
                                      allowMissing: true, alwaysLinkToLastBuild: true])
             })
 
+            gated('Tests: System (pass rate)', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/run-tests.sh system')
+            }, {
+                junit testResults: 'build/reports/system/junit.xml', allowEmptyResults: true
+            })
+
             gated('Tests: System (requirement coverage 100%)') {
                 inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-req-coverage.sh')
             }
 
+            // 모든 검증 단계가 끝난 뒤(실패 여부와 관계없이) 결과를 VERReport 로 한 페이지에 모은다.
+            // 빌드 페이지 왼쪽 메뉴의 "Verification Report" 가 index.html 로 연결된다.
+            gated('Verification report (VERReport)', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/verreport.sh',
+                             [GIT_COMMIT: env.GIT_COMMIT ?: '', BUILD_NUMBER: env.BUILD_NUMBER ?: '',
+                              VERREPORT_PROJECT: 'ClaudeClang'])
+            }, {
+                publishHTML(target: [reportDir: 'build/verreport', reportFiles: 'index.html',
+                                     reportName: 'Verification Report', keepAll: true,
+                                     allowMissing: true, alwaysLinkToLastBuild: true])
+            })
+
             stage('Archive') {
-                archiveArtifacts artifacts: 'build/reports/**, build/doxygen/**', allowEmptyArchive: true,
-                                 fingerprint: true
+                archiveArtifacts artifacts: 'build/reports/**, build/doxygen/**, build/verreport/**',
+                                 allowEmptyArchive: true, fingerprint: true
             }
         }
     }
