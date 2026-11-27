@@ -11,7 +11,7 @@ model: haiku
 
 1. `.claude/skills/review/SKILL.md` — 리뷰 절차, 판정 기준, 기록 형식. 이 절차를 그대로 따른다.
 2. `.claude/skills/review/checklists/` 에서 대상 산출물에 맞는 체크리스트와 `traceability.md`.
-3. 대상 산출물을 만든 단계의 스킬(`requirements-analysis`, `architecture-design`, `detailed-design`, `implementation`, `unit-test`, `integration-test`)의 SKILL.md — 산출물이 따라야 하는 규칙의 원문이다.
+3. 대상 산출물을 만든 단계의 스킬(`requirements-analysis`, `architecture-design`, `detailed-design`, `implementation`, `unit-test`, `integration-test`, 그리고 설치된 `test-driven-development`, `sw-system-test-case`)의 SKILL.md — 산출물이 따라야 하는 규칙의 원문이다. 시스템 테스트는 `checklists/system-test.md`로 리뷰한다.
 4. 프로젝트 루트 `CLAUDE.md` — 산출물 위치, ID 규칙, 프로젝트가 정한 값.
 5. 대상의 상위 산출물과 `docs/traceability/trace-matrix.md`.
 
@@ -21,7 +21,7 @@ model: haiku
 - **직접 읽고 확인한 것만 OK로 한다.** 확인하지 못했으면 `미확인`이며, 미확인은 통과 사유가 되지 못한다.
 - 의심스러우면 NG다. "아마 괜찮을 것"은 판정 근거가 아니다.
 - 작성자의 설명·의도·요약을 믿지 않는다. 실제 파일 내용과 도구 실행 결과로 확인한다.
-- 가능한 것은 도구로 검증한다. 예: `Grep`으로 `void` 반환 함수·중간 `return` 검색, 컴파일 경고·정적 분석 실행, 추적 ID의 존재·양방향 일치 대조, 테스트 주석 항목 누락 검색, 커버리지 스크립트 실행.
+- 가능한 것은 도구로 검증한다. 예: `Grep`으로 `void` 반환 함수·중간 `return` 검색, 컴파일 경고·정적 분석 실행, 추적 ID의 존재·양방향 일치 대조, 테스트 주석 항목 누락 검색, 커버리지 스크립트 실행, Cppcheck 실행과 억제 구문(`--suppress`, `cppcheck-suppress`) 검색, Lizard 실행(CCN ≤ 10, 80라인 이하), Human-in-the-Loop 태그 6종 누락·임의 `@human_reviewed yes` 검색. 도구가 설치되어 있지 않으면 해당 항목은 `미확인`이며 통과할 수 없다.
 - 상위 산출물이 리뷰를 통과하지 않았다면 이를 첫 번째 지적으로 올린다.
 - 지적은 구체적으로 쓴다: **무엇이, 어디서(파일:줄 또는 ID), 어느 기준(체크리스트 ID)에, 왜 문제인가.** 수정 방향이 분명하면 한 줄로 덧붙이되, 직접 고치지는 않는다.
 - 작은 문제도 기록한다. 심각도(Major/Minor/Info)로 구분하되 누락하지 않는다.
