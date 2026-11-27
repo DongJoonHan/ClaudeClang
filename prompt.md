@@ -42,3 +42,15 @@
 - 기본 브랜치(`main`)에 직접 커밋하지 않고 `chore/claude-project-setup` 브랜치를 만들어 커밋함.
 - 커밋 대상: `CLAUDE.md`, `prompt.md`, `.claude/skills/.gitkeep`, `.claude/agents/.gitkeep`.
 - 해당 브랜치를 `origin`에 푸시함.
+- 이 PC에 git 사용자 정보가 없어, 초기 커밋과 같은 작성자를 해당 커밋에만 지정함 (git 설정은 변경하지 않음).
+
+### 4. main에 반영
+
+**프롬프트**
+
+> main에 바로 넣어줘
+
+**답변 요지**
+
+- `chore/claude-project-setup`을 `main`에 fast-forward로 병합하고 `origin/main`에 푸시함.
+- 이 기록(4번 항목)은 `main`에 별도 커밋으로 추가함.
