@@ -93,6 +93,11 @@ jobs:
             [ -f build/reports/cloc-ratio.csv ] && echo "주석률(CLOC, 보고만): $(tail -n 1 build/reports/cloc-ratio.csv)%"
           } >> "$GITHUB_STEP_SUMMARY" || true
 
+      # 컨테이너가 root로 만든 리포트(llvm-cov HTML 등)를 러너 사용자가 읽을 수 있게 한다.
+      - name: Fix report ownership
+        if: ${{ !cancelled() }}
+        run: sudo chown -R "$(id -u):$(id -g)" build ci/smoke/build 2>/dev/null || true
+
       - name: Upload reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
