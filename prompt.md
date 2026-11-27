@@ -187,3 +187,17 @@
 - Jenkins 구축 중 해결한 문제: (5) `cloc` 플러그인이 업데이트 센터에서 제거되어 설치 실패 → CLOC 결과를 CSV로 만들어 Plot 플러그인으로 표시; (6) Git 플러그인이 `file://` 로컬 체크아웃을 차단 → `-Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true`; (7) 빌드 트리거 POST가 403 → CSRF 크럼 사용.
 - Jenkins 검증: 작업 `ClaudeClang`(멀티브랜치) 생성, 플러그인 90개 설치, `feature/dev-environment` 빌드 성공(13단계). 제품 코드가 있는 임시 브랜치로 시험 13개·커버리지 3종·Cppcheck/Lizard/HITL/Doxygen 이슈·Plot·HTML 리포트·산출물 게시를 확인했고, 위반을 넣은 임시 브랜치에서 Lizard·Doxygen·단위 MC/DC 단계가 FAILED로 표시되고 빌드가 FAILURE가 되는 것을 확인(임시 브랜치와 Jenkins 작업은 삭제함).
 - PR: `feature/dev-environment` → `develop` 생성, 병합하지 않음.
+
+### 14. CI를 GitHub Actions로 전환, Jenkins는 주기 검증
+
+**프롬프트**
+
+> CI는 Action으로 변경해줘. 단, 내부에서도 jenkins를 주기적으로 실행하도록 구성해줘.
+
+**답변 요지**
+
+- `.github/workflows/ci.yml`: 같은 `docker/Dockerfile`로 이미지를 빌드(GitHub 캐시)하고 같은 `ci/scripts/`로 도구 버전 → Toolchain self-check → 전체 품질 게이트 → 요약·리포트 업로드. PR 병합 게이트 `build-and-verify`.
+- Jenkins: 통합 브랜치(develop/main/release/*/hotfix/*)를 6시간마다(`cron('H H/6 * * *')`) 자동 빌드, 브랜치 스캔은 1시간마다. feature 브랜치에는 cron 없음. release 브랜치 임시 생성으로 등록 확인 후 정리.
+- 해결한 문제: (8) 컨테이너가 root로 만든 llvm-cov HTML을 러너가 읽지 못해 `upload-artifact`가 EACCES → 업로드 전 소유권 변경 단계 추가.
+- Actions 실행 성공(전 단계). `main`, `develop`에 브랜치 보호 적용: PR 필수, 필수 체크 `build-and-verify`, 강제 푸시·삭제 금지, 관리자 우회 가능.
+- `CLAUDE.md` 3.2, 5절을 Actions 게이트 + Jenkins 주기 검증 구조로 갱신.
