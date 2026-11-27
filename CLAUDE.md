@@ -238,7 +238,8 @@ CI는 두 계층이며 둘 다 4.1절의 같은 이미지(`docker/Dockerfile`)�
 - 위치: `ci/Jenkinsfile`(파이프라인), `ci/jenkins/`(이미지, `plugins.txt`, JCasC `casc/jenkins.yaml`, `docker-compose.yml`), `ci/scripts/`(공용 검사 스크립트).
 - 접속: `http://localhost:8080`, 계정 `admin`, 비밀번호는 `ci/jenkins/.env`의 `JENKINS_ADMIN_PASSWORD` (git 제외). 작업 `ClaudeClang`은 멀티브랜치 파이프라인이며, 이 PC의 저장소(`/repo-src`로 마운트)에서 Gitflow 브랜치를 1시간마다 찾고, **통합 브랜치(`develop`, `main`, `release/*`, `hotfix/*`)는 6시간마다(`cron('H H/6 * * *')`) 자동 빌드**한다. 그 외 브랜치는 스캔 때 변경이 있으면 빌드한다. **로컬에 커밋된 상태만 빌드한다.**
 - 빌드는 `claudeclangbuild` 이미지에서 실행한다. Jenkins 컨테이너가 Docker 소켓으로 호스트 Docker에 빌드 컨테이너를 띄우고 `--volumes-from`으로 작업 공간을 공유한다.
-- 파이프라인 단계: Environment → Toolchain self-check → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(요구사항) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
+- 파이프라인 단계: Environment → Toolchain self-check → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(성공률) → System(요구사항) → Verification report(VERReport) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
+- **VERReport**: 모든 검증 단계가 끝나면 `ci/scripts/verreport.sh`가 [VERReport](https://github.com/DongJoonHan/VERReport)(시험, 커버리지, Cppcheck, Lizard 결과를 한 번에 보여 주는 정적 HTML 도구)로 `build/verreport/index.html`을 만든다. 빌드 페이지 왼쪽 메뉴의 **Verification Report** 링크가 이 `index.html`이다. VERReport는 `main`에 README만 있어서 구현이 있는 `feature/verreport` 브랜치의 검토한 커밋(`f06421f`)으로 고정해 설치한다 (빌드 이미지에 네트워크 필요). 보고서 생성은 게이트로 실패하지 않으며 합격 여부는 각 단계가 판단한다.
 - 결과 확인(플러그인): 시험 결과(JUnit), Cppcheck/Lizard/HITL/Doxygen(Warnings NG), 커버리지(Coverage 플러그인, LCOV), LLVM HTML 리포트(MC/DC 포함, HTML Publisher), 주석률(CLOC 결과를 Plot 플러그인으로 표시 — CLOC 전용 Jenkins 플러그인은 업데이트 센터에서 제거되어 사용할 수 없다).
 - Jenkins는 GitHub에 결과를 보고하지 않는다 (로컬 PC에서만 접근 가능하고 webhook을 받지 않음). PR 병합 판단은 Actions 결과로 한다.
 
