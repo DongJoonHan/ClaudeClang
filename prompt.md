@@ -299,3 +299,15 @@
 - `feature/iteration-3` 에서 규칙 4~8(긴급 해제, 점화 꺼짐, ISOFIX, 이동 시작 자동 잠금, 운전자 명령)과 override, 이동 중 명령 거절 이유 구현. TDD 7개(red 확인), 단위 79(MC/DC 66/66), 통합 14(함수 49/49), 시스템 실행 89/105. PICT 11조합이 SRS 에서 계산한 기대값과 일치. `run-all.sh` 전 단계 통과. 면제는 이터레이션 3 으로 연장.
 - 결정: 규칙 8 은 모든 필수 입력이 유효할 때만 적용(REQ-F-021 문구), override 는 규칙 3 만 해제하고 이동을 시작하면 규칙 7 이 다시 LOCK.
 - 해결한 문제: (16) 기본 정상 입력 속도 10 km/h 가 규칙 7 을 일으켜 이전 시험이 어긋남 → 0 km/h(정지)로 변경, (17) 요청 시각 시험이 stale 입력이 됨 → 0.15 s 범위로 재설계, (18) 단위 시험의 미사용 변수와 override 이유 시험의 설정 오류, (19) Cppcheck 4건, Lizard 80라인 초과 1건(시험 본문 표 기반으로 축소).
+
+### 23. 이터레이션 3 병합과 Jenkins VERReport 연동
+
+**프롬프트**
+
+> 1번으로 병합하고, Jenkins에서 빌드/검증이 완료되면 https://github.com/DongJoonHan/VERReport.git 프로그램 실행해서 결과 리포트 만들어줘. 결과 리포트는 Jenkins의 해당 빌드 페이지 왼쪽에 index.html 링크 걸어줘.
+
+**답변 요지**
+
+- 이터레이션 3: PR #6 → `develop`, release PR #7 → `main` 병합(`0e0f804`), 필수 체크 통과 확인 후.
+- VERReport 는 `main` 에 README 만 있고 구현은 `feature/verreport` 브랜치에 있다. 실행 전에 별도 디렉터리에 받아 내용을 읽고(네트워크·외부 명령·삭제 호출 없음, `--out` 디렉터리에만 씀) 커밋 `f06421f` 로 고정했다.
+- `ci/scripts/verreport.sh` 추가(빌드 이미지에서 venv 에 설치해 실행, 경로 접두어 `/workspace/` 와 Jenkins 작업 공간 처리), Jenkinsfile 에 System(성공률) 단계와 `Verification report (VERReport)` 단계 추가(`publishHTML` 로 빌드 페이지 왼쪽 메뉴에 `Verification Report` → `index.html`), 아카이브에 `build/verreport/**` 포함. 로컬 빌드 이미지 실행 확인: 시험 199건 통과, 게이트 5개 통과.
