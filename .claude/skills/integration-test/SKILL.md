@@ -59,7 +59,7 @@ description: A-SPICE(SWE.5) 기준으로 통합 테스트를 설계·작성·실
  * @brief     [목적] 센서 컴포넌트가 오류를 반환하면 제어 컴포넌트가 안전 상태로 전이한다.
  * @satisfies ARCH-I-007, ARCH-C-002, REQ-F-031
  * @technique 오류 전파 / 동치 클래스(무효 센서 값)
- * @input     센서 컴포넌트가 Status::ErrRange를 반환하도록 하드웨어 경계를 설정
+ * @input     센서 컴포넌트가 PROJ_ERR_RANGE를 반환하도록 하드웨어 경계를 설정
  * @procedure 1) 두 컴포넌트를 실제 인터페이스로 연결해 초기화한다.
  *            2) 제어 주기를 1회 실행한다.
  * @expected  제어 컴포넌트의 상태 == SAFE_STATE, 출력 명령 == 0

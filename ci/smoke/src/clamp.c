@@ -1,6 +1,6 @@
 /**
- * @file    clamp.cpp
- * @brief   clamp 함수 구현 (툴체인 검증용 참조 코드).
+ * @file    clamp.c
+ * @brief   smoke_clamp 구현 (툴체인 검증용 참조 코드).
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -9,22 +9,21 @@
  * @reviewed_by     -
  * @reviewed_date   -
  */
-#include "smoke/clamp.hpp"
+#include "smoke/clamp.h"
 
-namespace smoke
+#include <stddef.h>
+
+smoke_status_t smoke_clamp(int value, int lo, int hi, int* out)
 {
+    smoke_status_t result = SMOKE_OK;
 
-Status clamp(int value, int lo, int hi, int* out)
-{
-    Status result = Status::Ok;
-
-    if (out == nullptr)
+    if (out == NULL)
     {
-        result = Status::ErrNullArg;
+        result = SMOKE_ERR_NULL_ARG;
     }
     else if (lo > hi)
     {
-        result = Status::ErrRange;
+        result = SMOKE_ERR_RANGE;
     }
     else if (value < lo)
     {
@@ -41,5 +40,3 @@ Status clamp(int value, int lo, int hi, int* out)
 
     return result;
 }
-
-}  // namespace smoke

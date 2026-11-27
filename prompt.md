@@ -201,3 +201,40 @@
 - 해결한 문제: (8) 컨테이너가 root로 만든 llvm-cov HTML을 러너가 읽지 못해 `upload-artifact`가 EACCES → 업로드 전 소유권 변경 단계 추가.
 - Actions 실행 성공(전 단계). `main`, `develop`에 브랜치 보호 적용: PR 필수, 필수 체크 `build-and-verify`, 강제 푸시·삭제 금지, 관리자 우회 가능.
 - `CLAUDE.md` 3.2, 5절을 Actions 게이트 + Jenkins 주기 검증 구조로 갱신.
+
+### 15. PR #1 병합
+
+**프롬프트**
+
+> PR #1 병합해줘
+
+**답변 요지**
+
+- 최신 커밋에서 필수 체크 `build-and-verify` 성공을 확인한 뒤 병합 커밋(`6205f4a`)으로 `develop`에 병합. Jenkins가 `develop`을 인식해 빌드 성공, 6시간 cron 등록 확인.
+
+### 16. OEM SW 요구사항 사양서 검토와 개발 계획
+
+**프롬프트**
+
+> "OEM/OEM-SWR-001_OEM SW 요구사항 사양서.docx" 을 검토하고, 우리가 SW를 개발하기 위한 개발 계획을 제시해. 내가 사전에 검토/승인해야 하는 것을 먼저 알려줘.
+
+**답변 요지**
+
+- 문서(전자식 차일드락 제어 SW, ASIL B 입력 4건 + QM 기능 7건 + 비기능 2건, 외부 인터페이스 9건, 인도 게이트 G1~G4)를 검토. 승인 요청 사항, 문서의 충돌·모호 사항, 이터레이션 계획을 제시.
+- 핵심 블로커: (1) OEM 실행환경이 Python 3.12인데 우리 기준은 C++/MC/DC, (2) 교육용 비공개 문서와 공개 저장소, (3) 요구사항 간 우선순위 충돌.
+- 안전조치: `OEM/`을 로컬 전용(`.git/info/exclude`)으로 git에서 제외 (저장소 변경 없음). 이 기록(15, 16번)은 `develop` 작업 트리에 미커밋 상태로 두었음(Gitflow상 feature 브랜치에서 커밋 예정).
+
+### 17. 개발 언어 확정(C)과 환경 전환, 이터레이션 계획 재제시
+
+**프롬프트**
+
+> 요구사항 변경으로 개발언어는 CLang으로 확정되었어. CLAUDE.md를 기준으로 개발환경 맞춰줘. 저장소는 public 유지하고, 문서 배포 승인받았어. 나머지는 너의 권고안으로 진행해. 이터레이션 계획 다시 제시해
+
+**답변 요지**
+
+- "CLang"을 **C 언어(C17), 컴파일러는 Clang**으로 해석(가정). 시험 코드는 GoogleTest/GMock이 C++ 전용이므로 C++20 유지.
+- `feature/c-language-env` 브랜치에서 전환: CMake(`LANGUAGES C CXX`, C17·C 컴파일러 검사), Cppcheck(`--std=c17 --std=c++20`), Lizard(`-l c -l cpp`), Doxygen/HITL/훅의 파일 패턴에 `.c` 추가, `.clang-format`.
+- 참조 프로젝트 `ci/smoke`를 C로 재작성(클래스 → 함수 포인터+`void*` 문맥 인터페이스, GMock 어댑터). 시험 13개, 단위 MC/DC 100%, 통합 함수 100%, Cppcheck/Lizard/HITL/Doxygen 통과.
+- `CLAUDE.md` 4, 4.2, 4.3, 7절과 스킬(implementation, unit-test, integration-test, detailed-design, review code 체크리스트)을 C 기준으로 갱신.
+- 해결한 문제: (9) Cppcheck `constParameterCallback` — 억제하지 않고 콜백이 호출 횟수를 기록하도록 설계 정리, (10) 매크로 주석에 HITL 태그 누락.
+- OEM 문서 공개 저장소 반영은 사용자 승인에 따라 PR 단계에서 `OEM/`의 로컬 제외를 풀고 포함. 아직 커밋/PR 없음.

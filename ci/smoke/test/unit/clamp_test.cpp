@@ -11,7 +11,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "smoke/clamp.hpp"
+#include "smoke/clamp.h"
 
 namespace
 {
@@ -22,8 +22,8 @@ namespace
  * @satisfies REQ-F-001
  * @technique 동치 클래스(무효 입력)
  * @input     value=1, lo=0, hi=10, out=nullptr
- * @procedure 1) out=nullptr로 clamp()를 호출한다.
- * @expected  반환값 == Status::ErrNullArg
+ * @procedure 1) out=nullptr로 smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_ERR_NULL_ARG
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -34,7 +34,7 @@ namespace
  */
 TEST(ClampTest, ReturnsErrNullArgWhenOutIsNull)
 {
-    EXPECT_EQ(smoke::clamp(1, 0, 10, nullptr), smoke::Status::ErrNullArg);
+    EXPECT_EQ(smoke_clamp(1, 0, 10, nullptr), SMOKE_ERR_NULL_ARG);
 }
 
 /**
@@ -43,8 +43,8 @@ TEST(ClampTest, ReturnsErrNullArgWhenOutIsNull)
  * @satisfies REQ-F-001
  * @technique 경계값 분석(lo == hi + 1)
  * @input     value=5, lo=6, hi=5, out=센티널(-99)
- * @procedure 1) out을 -99로 초기화한다. 2) clamp()를 호출한다.
- * @expected  반환값 == Status::ErrRange, out == -99
+ * @procedure 1) out을 -99로 초기화한다. 2) smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_ERR_RANGE, out == -99
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -56,7 +56,7 @@ TEST(ClampTest, ReturnsErrNullArgWhenOutIsNull)
 TEST(ClampTest, ReturnsErrRangeWhenLowIsGreaterThanHigh)
 {
     int out = -99;
-    EXPECT_EQ(smoke::clamp(5, 6, 5, &out), smoke::Status::ErrRange);
+    EXPECT_EQ(smoke_clamp(5, 6, 5, &out), SMOKE_ERR_RANGE);
     EXPECT_EQ(out, -99);
 }
 
@@ -66,8 +66,8 @@ TEST(ClampTest, ReturnsErrRangeWhenLowIsGreaterThanHigh)
  * @satisfies REQ-F-001
  * @technique 경계값 분석(lo - 1)
  * @input     value=-1, lo=0, hi=10
- * @procedure 1) clamp()를 호출한다.
- * @expected  반환값 == Status::Ok, out == 0
+ * @procedure 1) smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_OK, out == 0
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -79,7 +79,7 @@ TEST(ClampTest, ReturnsErrRangeWhenLowIsGreaterThanHigh)
 TEST(ClampTest, ClampsToLowWhenBelowRange)
 {
     int out = 0;
-    EXPECT_EQ(smoke::clamp(-1, 0, 10, &out), smoke::Status::Ok);
+    EXPECT_EQ(smoke_clamp(-1, 0, 10, &out), SMOKE_OK);
     EXPECT_EQ(out, 0);
 }
 
@@ -89,8 +89,8 @@ TEST(ClampTest, ClampsToLowWhenBelowRange)
  * @satisfies REQ-F-001
  * @technique 경계값 분석(hi + 1)
  * @input     value=11, lo=0, hi=10
- * @procedure 1) clamp()를 호출한다.
- * @expected  반환값 == Status::Ok, out == 10
+ * @procedure 1) smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_OK, out == 10
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -102,7 +102,7 @@ TEST(ClampTest, ClampsToLowWhenBelowRange)
 TEST(ClampTest, ClampsToHighWhenAboveRange)
 {
     int out = 0;
-    EXPECT_EQ(smoke::clamp(11, 0, 10, &out), smoke::Status::Ok);
+    EXPECT_EQ(smoke_clamp(11, 0, 10, &out), SMOKE_OK);
     EXPECT_EQ(out, 10);
 }
 
@@ -112,8 +112,8 @@ TEST(ClampTest, ClampsToHighWhenAboveRange)
  * @satisfies REQ-F-001
  * @technique 경계값 분석(lo, hi) + 동치 클래스(유효 범위 안)
  * @input     value ∈ {0, 5, 10}, lo=0, hi=10
- * @procedure 1) 각 값으로 clamp()를 호출한다.
- * @expected  반환값 == Status::Ok, out == value
+ * @procedure 1) 각 값으로 smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_OK, out == value
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -127,7 +127,7 @@ TEST(ClampTest, KeepsValueWhenInsideRangeIncludingBounds)
     for (const int value : {0, 5, 10})
     {
         int out = -1;
-        EXPECT_EQ(smoke::clamp(value, 0, 10, &out), smoke::Status::Ok);
+        EXPECT_EQ(smoke_clamp(value, 0, 10, &out), SMOKE_OK);
         EXPECT_EQ(out, value);
     }
 }

@@ -4,7 +4,7 @@
 #   검사 도구는 CI와 같은 Docker 이미지(claudeclangbuild)의 Lizard를 사용한다.
 #
 # 동작
-#   - src/ include/ test/ 에 변경(미커밋)된 C++ 파일이 없으면 아무것도 하지 않는다.
+#   - src/ include/ test/ 에 변경(미커밋)된 C/C++ 파일이 없으면 아무것도 하지 않는다.
 #   - 위반이 있으면 종료 코드 2 로 종료해 Claude가 멈추지 못하게 하고, 위반 내용을 stderr 로 전달한다.
 #   - 도구를 실행할 수 없는 경우(Docker 중지, 이미지 없음)도 같은 방식으로 알린다.
 #   - 같은 문제로 연속 3번 막았는데도 해결되지 않으면 무한 반복을 피하려고 통과시킨다.
@@ -19,9 +19,9 @@ cat > /dev/null   # 훅 입력(JSON)은 사용하지 않는다
 
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" || exit 0
 
-# 변경된 C++ 파일이 있는지 확인 (추적·미추적 모두)
+# 변경된 C/C++ 파일이 있는지 확인 (추적·미추적 모두)
 changed="$(git status --porcelain --untracked-files=all -- src include test 2>/dev/null \
-    | grep -E '\.(cpp|cc|cxx|hpp|hh|h)$' | head -n 1)"
+    | grep -E '\.(c|cpp|cc|cxx|hpp|hh|h)$' | head -n 1)"
 if [ -z "$changed" ]; then
     rm -f "$counter_file"
     exit 0

@@ -37,7 +37,7 @@ else
 fi
 
 common_args=(--enable="$rules" --inconclusive --check-level=exhaustive
-    --language=c++ --std=c++20 --library=googletest
+    --std=c17 --std=c++20 --library=googletest
     --error-exitcode=1 --quiet)
 
 result=0
