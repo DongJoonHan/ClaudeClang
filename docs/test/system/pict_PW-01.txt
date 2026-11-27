@@ -1,0 +1,14 @@
+# PW-01: 규칙 우선순위 상호작용 (REQ-F-012, REQ-F-020). 이전 확정 출력은 좌 LOCK, 우 RELEASE 로 고정한다.
+sensor_fault: 0, 1
+crash_status: NONE, PENDING, CONFIRMED
+approach_left: 0, 1
+emergency: none, fire, adult
+ignition_on: 1, 0
+isofix_left: 0, 1
+speed_kph: 0, 10
+command: none, left_unlock
+
+# 물리적/입력 제약: 점화가 꺼져 있으면 차속은 0
+IF [ignition_on] = 0 THEN [speed_kph] = 0;
+# 운전자 명령은 정지 상태에서만 적용 대상이므로 이동 중 명령 조합은 별도 TC(REQ-F-035)에서 다룬다
+IF [command] = "left_unlock" THEN [speed_kph] = 0;

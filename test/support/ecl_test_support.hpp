@@ -65,6 +65,16 @@ static inline ecl_raw_command_t ValidCommand()
     return cmd;
 }
 
+// 명령 한 건을 코드 값으로 만든다
+static inline ecl_raw_command_t Cmd(int side, int action, int source)
+{
+    ecl_raw_command_t cmd{};
+    cmd.side = Int(side);
+    cmd.action = Int(action);
+    cmd.source = Int(source);
+    return cmd;
+}
+
 // 모든 필드가 유효한 검증 입력 (다른 모듈의 결과에 의존하지 않고 직접 만든다)
 static inline ecl_validated_t ValidValidated()
 {

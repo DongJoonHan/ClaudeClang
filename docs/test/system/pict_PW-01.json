@@ -1,0 +1,127 @@
+{
+  "model_file": "/workspace/docs/test/system/pict_PW-01.txt",
+  "model_text": "# PW-01: 규칙 우선순위 상호작용 (REQ-F-012, REQ-F-020). 이전 확정 출력은 좌 LOCK, 우 RELEASE 로 고정한다.\nsensor_fault: 0, 1\ncrash_status: NONE, PENDING, CONFIRMED\napproach_left: 0, 1\nemergency: none, fire, adult\nignition_on: 1, 0\nisofix_left: 0, 1\nspeed_kph: 0, 10\ncommand: none, left_unlock\n\n# 물리적/입력 제약: 점화가 꺼져 있으면 차속은 0\nIF [ignition_on] = 0 THEN [speed_kph] = 0;\n# 운전자 명령은 정지 상태에서만 적용 대상이므로 이동 중 명령 조합은 별도 TC(REQ-F-035)에서 다룬다\nIF [command] = \"left_unlock\" THEN [speed_kph] = 0;\n",
+  "command": "pict pict_PW-01.txt /o:2",
+  "header": [
+    "sensor_fault",
+    "crash_status",
+    "approach_left",
+    "emergency",
+    "ignition_on",
+    "isofix_left",
+    "speed_kph",
+    "command"
+  ],
+  "rows": [
+    {
+      "sensor_fault": "0",
+      "crash_status": "PENDING",
+      "approach_left": "1",
+      "emergency": "none",
+      "ignition_on": "1",
+      "isofix_left": "1",
+      "speed_kph": "0",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "1",
+      "crash_status": "NONE",
+      "approach_left": "0",
+      "emergency": "adult",
+      "ignition_on": "0",
+      "isofix_left": "0",
+      "speed_kph": "0",
+      "command": "left_unlock"
+    },
+    {
+      "sensor_fault": "0",
+      "crash_status": "PENDING",
+      "approach_left": "0",
+      "emergency": "adult",
+      "ignition_on": "1",
+      "isofix_left": "0",
+      "speed_kph": "10",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "0",
+      "crash_status": "CONFIRMED",
+      "approach_left": "1",
+      "emergency": "fire",
+      "ignition_on": "0",
+      "isofix_left": "1",
+      "speed_kph": "0",
+      "command": "left_unlock"
+    },
+    {
+      "sensor_fault": "1",
+      "crash_status": "NONE",
+      "approach_left": "1",
+      "emergency": "fire",
+      "ignition_on": "1",
+      "isofix_left": "1",
+      "speed_kph": "10",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "1",
+      "crash_status": "PENDING",
+      "approach_left": "0",
+      "emergency": "fire",
+      "ignition_on": "0",
+      "isofix_left": "0",
+      "speed_kph": "0",
+      "command": "left_unlock"
+    },
+    {
+      "sensor_fault": "1",
+      "crash_status": "CONFIRMED",
+      "approach_left": "1",
+      "emergency": "adult",
+      "ignition_on": "1",
+      "isofix_left": "0",
+      "speed_kph": "10",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "1",
+      "crash_status": "CONFIRMED",
+      "approach_left": "0",
+      "emergency": "none",
+      "ignition_on": "1",
+      "isofix_left": "1",
+      "speed_kph": "0",
+      "command": "left_unlock"
+    },
+    {
+      "sensor_fault": "0",
+      "crash_status": "NONE",
+      "approach_left": "1",
+      "emergency": "adult",
+      "ignition_on": "0",
+      "isofix_left": "1",
+      "speed_kph": "0",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "0",
+      "crash_status": "NONE",
+      "approach_left": "1",
+      "emergency": "none",
+      "ignition_on": "1",
+      "isofix_left": "0",
+      "speed_kph": "10",
+      "command": "none"
+    },
+    {
+      "sensor_fault": "0",
+      "crash_status": "PENDING",
+      "approach_left": "0",
+      "emergency": "none",
+      "ignition_on": "0",
+      "isofix_left": "1",
+      "speed_kph": "0",
+      "command": "left_unlock"
+    }
+  ]
+}
