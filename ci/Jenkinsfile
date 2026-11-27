@@ -78,8 +78,17 @@ node {
                 recordIssues(tools: [gcc(id: 'hitl', name: 'HITL tags', pattern: 'build/reports/hitl.txt')],
                              id: 'hitl', name: 'Human-in-the-Loop tags',
                              qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'FAILURE']])
-                step([$class: 'ClocPublisher', reportFiles: 'build/reports/cloc.xml',
-                      sourceEncoding: 'UTF-8'])
+                // CLOC Jenkins 플러그인은 업데이트 센터에서 사라져서 Plot 플러그인으로 주석률을 보여 준다.
+                if (fileExists('build/reports/cloc-ratio.csv')) {
+                    plot(group: 'CLOC', title: 'Comment ratio (%)', yaxis: '%', style: 'line',
+                         csvFileName: 'plot-cloc-ratio.csv',
+                         csvSeries: [[file: 'build/reports/cloc-ratio.csv', displayTableFlag: true,
+                                      inclusionFlag: 'OFF', exclusionValues: '', url: '']])
+                    plot(group: 'CLOC', title: 'Lines of code', yaxis: 'lines', style: 'line',
+                         csvFileName: 'plot-cloc-lines.csv',
+                         csvSeries: [[file: 'build/reports/cloc-lines.csv', displayTableFlag: true,
+                                      inclusionFlag: 'OFF', exclusionValues: '', url: '']])
+                }
             })
 
             gated('Doxygen', {

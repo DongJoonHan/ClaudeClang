@@ -220,7 +220,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 - 위치: `ci/Jenkinsfile`(파이프라인), `ci/jenkins/`(Jenkins 이미지, `plugins.txt`, JCasC `casc/jenkins.yaml`, `docker-compose.yml`), `ci/scripts/`(개발·CI 공용 검사 스크립트).
 - 접속: `http://localhost:8080`, 계정 `admin`, 비밀번호는 `ci/jenkins/.env`의 `JENKINS_ADMIN_PASSWORD` (git 제외). 작업 `ClaudeClang`은 멀티브랜치 파이프라인이며, 이 PC의 저장소(`/repo-src`로 마운트)에서 Gitflow 브랜치를 1분마다 찾아 `ci/Jenkinsfile`로 빌드한다. **커밋된 상태만 빌드한다.**
 - 파이프라인 단계: Environment → Toolchain self-check(`ci/smoke`로 이미지·게이트 점검) → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(요구사항) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
-- 결과 확인(플러그인): 시험 결과(JUnit), Cppcheck/Lizard/HITL/Doxygen(Warnings NG), 커버리지(Coverage 플러그인, LCOV), LLVM HTML 리포트(MC/DC 포함, HTML Publisher), 주석률(CLOC).
+- 결과 확인(플러그인): 시험 결과(JUnit), Cppcheck/Lizard/HITL/Doxygen(Warnings NG), 커버리지(Coverage 플러그인, LCOV), LLVM HTML 리포트(MC/DC 포함, HTML Publisher), 주석률(CLOC 결과를 Plot 플러그인으로 표시 — CLOC 전용 Jenkins 플러그인은 업데이트 센터에서 제거되어 사용할 수 없다).
 - GitHub와의 연동(PR 상태 보고, 병합 차단)은 아직 없다. Jenkins가 로컬 PC에서만 접근 가능해 GitHub webhook을 받을 수 없다. 현재는 Jenkins 빌드 결과를 확인한 뒤 PR을 병합한다.
 
 ---

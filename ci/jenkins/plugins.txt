@@ -16,5 +16,4 @@ junit:latest
 warnings-ng:latest
 coverage:latest
 htmlpublisher:latest
-cloc:latest
 plot:latest
