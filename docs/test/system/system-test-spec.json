@@ -1721,10 +1721,9 @@
    ],
    "purpose": "좌/우 출력이 독립적으로 결정됨을 확인한다 (한쪽 규칙이 반대쪽 출력을 바꾸지 않음).",
    "preconditions": [
-    "이전 확정 출력: 좌 RELEASE, 우 LOCK",
-    "이터레이션 2 이후 실행"
+    "이전 확정 출력: 좌 RELEASE, 우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
     "접근위험(좌)": "TRUE",
     "이전 확정 출력": "좌 RELEASE, 우 LOCK"
@@ -1739,17 +1738,17 @@
    "proposed": false
   },
   {
-   "id": "ST-F-053",
+   "id": "ST-NF-001",
    "category": "비기능",
    "basis_ids": [
     "REQ-S-001",
     "REQ-S-005"
    ],
-   "purpose": "충돌 CONFIRMED 가 유효하면 300 ms 이내(첫 평가주기 이후 ≤ 30 주기)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.",
+   "purpose": "충돌 CONFIRMED 가 유효하면 300 ms 이내(10 ms 주기 30주기 이내)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.",
    "preconditions": [
-    "이터레이션 2 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
     "crash_status": "CONFIRMED (t0 부터 3 s 유지)",
     "이전 확정 출력": "좌 LOCK, 우 LOCK"
@@ -1759,10 +1758,34 @@
     "t0 에 CONFIRMED 를 주입하고 10 ms 주기로 300 주기를 실행한다",
     "RELEASE 가 된 첫 시각과 이후 출력을 관측한다"
    ],
-   "expected": "RELEASE 가 t0 부터 300 ms 이내에 되고, 이후 300주기 동안 계속 RELEASE",
+   "expected": "RELEASE 가 t0 부터 300 ms 이내(k ≤ 30)에 되고, 이후 300주기 동안 계속 RELEASE",
    "techniques": [
     "경계값 분석",
     "성능 측정"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-053",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-001"
+   ],
+   "purpose": "충돌 전이 에서 RELEASE 가 된다.",
+   "preconditions": [
+    "이전 확정 출력: 좌/우 LOCK"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
+   "inputs": {
+    "crash_status": "직전 상태 NONE → CONFIRMED 전이"
+   },
+   "procedure": [
+    "이전 출력을 좌/우 LOCK 으로 하고 전이를 입력한다",
+    "다음 평가주기 출력을 관측한다"
+   ],
+   "expected": "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED",
+   "techniques": [
+    "상태 전이"
    ],
    "proposed": false
   },
@@ -1772,16 +1795,16 @@
    "basis_ids": [
     "REQ-S-001"
    ],
-   "purpose": "충돌 전이 에서 RELEASE 가 된다.",
+   "purpose": "충돌 PENDING 경유 에서 RELEASE 가 된다.",
    "preconditions": [
-    "이터레이션 2 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
-    "crash_status": "직전 상태 NONE → CONFIRMED 전이"
+    "crash_status": "PENDING → CONFIRMED 전이"
    },
    "procedure": [
-    "전이를 입력한다",
+    "이전 출력을 좌/우 LOCK 으로 하고 전이를 입력한다",
     "다음 평가주기 출력을 관측한다"
    ],
    "expected": "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED",
@@ -1794,54 +1817,29 @@
    "id": "ST-F-055",
    "category": "기능",
    "basis_ids": [
-    "REQ-S-001"
+    "REQ-F-029"
    ],
-   "purpose": "충돌 PENDING 경유 에서 RELEASE 가 된다.",
+   "purpose": "충돌 PENDING 은 출력을 바꾸지 않고 이유 CRASH_PENDING 만 기록한다.",
    "preconditions": [
-    "이터레이션 2 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
-    "crash_status": "PENDING → CONFIRMED 전이"
+    "crash_status": "PENDING",
+    "이전 확정 출력": "좌 LOCK, 우 RELEASE"
    },
    "procedure": [
-    "전이를 입력한다",
-    "다음 평가주기 출력을 관측한다"
+    "PENDING 으로 1주기를 실행한다"
    ],
-   "expected": "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED",
+   "expected": "좌 LOCK, 우 RELEASE 유지, priority HOLD, reason CRASH_PENDING, 상태 ACTIVE",
    "techniques": [
-    "상태 전이"
+    "동치 분할"
    ],
    "proposed": false
   },
   {
    "id": "ST-F-056",
-   "category": "기능",
-   "basis_ids": [
-    "REQ-F-029"
-   ],
-   "purpose": "충돌 PENDING 은 출력을 바꾸지 않고 CRASH_PENDING 만 기록하며 다른 규칙은 영향받지 않는다.",
-   "preconditions": [
-    "이터레이션 2 이후 실행"
-   ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
-   "inputs": {
-    "crash_status": "PENDING",
-    "추가": "속도 10 km/h"
-   },
-   "procedure": [
-    "PENDING 으로 1주기",
-    "PENDING + 속도 3.0 km/h 로 1주기"
-   ],
-   "expected": "첫째: 출력 유지, 이유 CRASH_PENDING / 둘째: 규칙 7 에 의해 LOCK (PENDING 이 막지 않음)",
-   "techniques": [
-    "동치 분할",
-    "WoW 검증"
-   ],
-   "proposed": false
-  },
-  {
-   "id": "ST-F-057",
    "category": "기능",
    "basis_ids": [
     "REQ-S-002",
@@ -1851,9 +1849,9 @@
    ],
    "purpose": "좌 접근위험 TRUE 이면 좌 LOCK, 좌 해제 요청 억제, 억제 이유 기록, 우는 영향 없음.",
    "preconditions": [
-    "이터레이션 2 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
     "rear_left_risk": "TRUE",
     "명령": "좌 해제(AVN), 정지 상태",
@@ -1869,16 +1867,72 @@
    "proposed": false
   },
   {
+   "id": "ST-F-057",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-002",
+    "REQ-S-006",
+    "REQ-F-017"
+   ],
+   "purpose": "우 접근위험 TRUE 이면 우만 LOCK 이고 우 해제 요청이 억제되며 좌는 영향 없다.",
+   "preconditions": [
+    "이전 확정 출력: 좌/우 LOCK"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
+   "inputs": {
+    "rear_right_risk": "TRUE",
+    "명령": "우 해제(음성), 정지 상태",
+    "이전 확정 출력": "좌 LOCK, 우 LOCK"
+   },
+   "procedure": [
+    "명령과 함께 1주기를 실행한다"
+   ],
+   "expected": "좌 LOCK(유지), 우 LOCK, 이유 APPROACH_RISK_HOLD",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
    "id": "ST-F-058",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020",
+    "REQ-S-001",
+    "REQ-S-002",
+    "REQ-S-004"
+   ],
+   "purpose": "순위 1~3 규칙의 단계별 우선순위: 접근위험만 → LOCK, +충돌 → RELEASE, +sensor_fault → 확정 출력 유지.",
+   "preconditions": [
+    "이전 확정 출력: 좌/우 RELEASE"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
+   "inputs": {
+    "주기 1": "좌 접근위험",
+    "주기 2": "+충돌 CONFIRMED",
+    "주기 3": "+sensor_fault, 충돌 NONE"
+   },
+   "procedure": [
+    "3주기를 같은 제어기에서 실행한다"
+   ],
+   "expected": "주기 1 좌 LOCK(APPROACH), 주기 2 좌/우 RELEASE(CRASH), 주기 3 좌/우 RELEASE 유지(SENSOR_FAULT)",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-059",
    "category": "기능",
    "basis_ids": [
     "REQ-S-002"
    ],
    "purpose": "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.",
    "preconditions": [
-    "이터레이션 2 이후 실행"
+    "이터레이션 3 이후 실행"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
    "inputs": {
     "주기 1": "좌 접근위험 TRUE",
     "주기 2": "접근위험 FALSE + 좌 해제 명령"
@@ -1893,7 +1947,32 @@
    "proposed": false
   },
   {
-   "id": "ST-F-059",
+   "id": "ST-F-060",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-029",
+    "REQ-F-022"
+   ],
+   "purpose": "충돌 PENDING 이 규칙 7(이동 시작 자동 잠금)을 막지 않는다.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "crash_status": "PENDING",
+    "vehicle_speed_kph": "3.0"
+   },
+   "procedure": [
+    "PENDING + 속도 3.0 km/h 로 1주기를 실행한다"
+   ],
+   "expected": "좌/우 LOCK (규칙 7), PENDING 은 영향 없음",
+   "techniques": [
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-061",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -1927,7 +2006,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-060",
+   "id": "ST-F-062",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -1961,7 +2040,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-061",
+   "id": "ST-F-063",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -1995,7 +2074,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-062",
+   "id": "ST-F-064",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2029,7 +2108,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-063",
+   "id": "ST-F-065",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2063,7 +2142,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-064",
+   "id": "ST-F-066",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2097,7 +2176,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-065",
+   "id": "ST-F-067",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2131,7 +2210,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-066",
+   "id": "ST-F-068",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2165,7 +2244,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-067",
+   "id": "ST-F-069",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2199,7 +2278,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-068",
+   "id": "ST-F-070",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2233,7 +2312,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-069",
+   "id": "ST-F-071",
    "category": "기능",
    "basis_ids": [
     "REQ-F-012",
@@ -2267,7 +2346,7 @@
    "pict_model": "PW-01"
   },
   {
-   "id": "ST-F-070",
+   "id": "ST-F-072",
    "category": "기능",
    "basis_ids": [
     "REQ-F-021",
@@ -2293,7 +2372,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-071",
+   "id": "ST-F-073",
    "category": "기능",
    "basis_ids": [
     "REQ-F-035"
@@ -2317,7 +2396,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-072",
+   "id": "ST-F-074",
    "category": "기능",
    "basis_ids": [
     "REQ-F-022"
@@ -2340,7 +2419,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-073",
+   "id": "ST-F-075",
    "category": "기능",
    "basis_ids": [
     "REQ-F-022"
@@ -2363,7 +2442,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-074",
+   "id": "ST-F-076",
    "category": "기능",
    "basis_ids": [
     "REQ-F-022"
@@ -2386,7 +2465,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-075",
+   "id": "ST-F-077",
    "category": "기능",
    "basis_ids": [
     "REQ-F-023",
@@ -2411,7 +2490,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-076",
+   "id": "ST-F-078",
    "category": "기능",
    "basis_ids": [
     "REQ-F-023",
@@ -2436,7 +2515,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-077",
+   "id": "ST-F-079",
    "category": "기능",
    "basis_ids": [
     "REQ-F-025"
@@ -2459,7 +2538,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-078",
+   "id": "ST-F-080",
    "category": "기능",
    "basis_ids": [
     "REQ-F-025"
@@ -2482,7 +2561,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-079",
+   "id": "ST-F-081",
    "category": "기능",
    "basis_ids": [
     "REQ-F-025"
@@ -2505,7 +2584,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-080",
+   "id": "ST-F-082",
    "category": "기능",
    "basis_ids": [
     "REQ-F-026",
@@ -2529,7 +2608,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-081",
+   "id": "ST-F-083",
    "category": "기능",
    "basis_ids": [
     "REQ-F-026",
@@ -2553,7 +2632,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-082",
+   "id": "ST-F-084",
    "category": "기능",
    "basis_ids": [
     "REQ-F-027"
@@ -2576,7 +2655,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-083",
+   "id": "ST-F-085",
    "category": "기능",
    "basis_ids": [
     "REQ-F-028",
@@ -2600,7 +2679,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-084",
+   "id": "ST-F-086",
    "category": "기능",
    "basis_ids": [
     "REQ-F-024"
@@ -2623,7 +2702,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-085",
+   "id": "ST-F-087",
    "category": "기능",
    "basis_ids": [
     "REQ-F-030",
@@ -2648,7 +2727,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-086",
+   "id": "ST-F-088",
    "category": "기능",
    "basis_ids": [
     "REQ-F-031"
@@ -2671,7 +2750,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-087",
+   "id": "ST-F-089",
    "category": "기능",
    "basis_ids": [
     "REQ-F-032"
@@ -2694,7 +2773,7 @@
    "proposed": false
   },
   {
-   "id": "ST-F-088",
+   "id": "ST-F-090",
    "category": "기능",
    "basis_ids": [
     "REQ-F-033"
@@ -2717,7 +2796,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-001",
+   "id": "ST-NF-002",
    "category": "비기능",
    "basis_ids": [
     "REQ-S-003",
@@ -2745,7 +2824,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-002",
+   "id": "ST-NF-003",
    "category": "비기능",
    "basis_ids": [
     "REQ-Q-003"
@@ -2767,7 +2846,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-003",
+   "id": "ST-NF-004",
    "category": "비기능",
    "basis_ids": [
     "REQ-Q-001"
@@ -2791,7 +2870,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-004",
+   "id": "ST-NF-005",
    "category": "비기능",
    "basis_ids": [
     "REQ-Q-002",
@@ -2814,7 +2893,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-005",
+   "id": "ST-NF-006",
    "category": "비기능",
    "basis_ids": [
     "REQ-L-001"
@@ -2835,7 +2914,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-006",
+   "id": "ST-NF-007",
    "category": "비기능",
    "basis_ids": [
     "REQ-L-002"
@@ -2856,7 +2935,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-007",
+   "id": "ST-NF-008",
    "category": "비기능",
    "basis_ids": [
     "REQ-L-003"
@@ -2877,7 +2956,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-008",
+   "id": "ST-NF-009",
    "category": "비기능",
    "basis_ids": [
     "REQ-L-004"
@@ -2898,7 +2977,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-009",
+   "id": "ST-NF-010",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-001"
@@ -2919,7 +2998,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-010",
+   "id": "ST-NF-011",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-002"
@@ -2940,7 +3019,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-011",
+   "id": "ST-NF-012",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-003"
@@ -2961,7 +3040,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-012",
+   "id": "ST-NF-013",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-004"
@@ -2982,7 +3061,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-013",
+   "id": "ST-NF-014",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-005"
@@ -3003,7 +3082,7 @@
    "proposed": false
   },
   {
-   "id": "ST-NF-014",
+   "id": "ST-NF-015",
    "category": "비기능",
    "basis_ids": [
     "REQ-C-006"

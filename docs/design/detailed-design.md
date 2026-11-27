@@ -2,8 +2,8 @@
 
 - 문서 ID: SWD-ECL-001, 버전 0.1 (이터레이션 1, OEM 게이트 G2 대상)
 - 입력: `docs/architecture/software-architecture.md` v0.1
-- 작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1 면제.
-- 범위: 이터레이션 1 구현 대상 모듈(ARCH-C-001, 002, 003, 004(규칙 1·HOLD 한정), 006, 009). 나머지 컴포넌트는 해당 이터레이션에서 추가한다.
+- 작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1~2 면제.
+- 범위: 이터레이션 1~2 구현 대상 모듈(ARCH-C-001, 002, 003, 004(이터 2: 규칙 1~3·HOLD), 006, 009). 나머지 컴포넌트는 해당 이터레이션에서 추가한다.
 - "특정 수준"(인터페이스 정의 대상 모듈) 기준은 CLAUDE.md 7절에 미정이므로 임시로 스킬 기본값(컴포넌트 경계 인터페이스를 구현하는 모듈)을 쓴다. 이 문서의 모든 모듈은 ARCH-I 를 구현하므로 모두 인터페이스 정의 대상이다. `static` 보조 함수는 비공개이며 인터페이스가 없다.
 
 ## 1. 공통 규칙
@@ -86,7 +86,7 @@ typedef struct { ecl_decision_t decision; ecl_state_t state; unsigned warnings; 
 | DD-M-001 | input_validation | 원시 입력을 검사해 필드별 유효성·신선도가 있는 검증 입력을 만든다. | ARCH-C-001 | REQ-F-001~005, REQ-S-003, REQ-S-008, REQ-Q-002, REQ-Q-004 | DD-I-001 |
 | DD-M-002 | command_intake | 원시 운전자 명령에서 첫 유효 명령 1건을 채택하고 거절 이유를 만든다. | ARCH-C-002 | REQ-F-006~009, 018, 019 | DD-I-002 |
 | DD-M-003 | status_eval | 검증 입력에서 상태와 경고코드를 정한다. | ARCH-C-003 | REQ-F-014, REQ-S-003, REQ-S-009 | DD-I-003 |
-| DD-M-004 | rule_engine | 규칙표 순위에 따라 도어별 출력과 이유코드를 결정한다 (이터 1: 규칙 1, HOLD). | ARCH-C-004 | REQ-F-010, 011, 012, 017, 020, 028, 037; REQ-S-004 | DD-I-004 |
+| DD-M-004 | rule_engine | 규칙표 순위에 따라 도어별 출력과 이유코드를 결정한다 (이터 1: 규칙 1, HOLD / 이터 2: 규칙 1~3, HOLD). | ARCH-C-004 | REQ-F-010, 011, 012, 017, 020, 028, 037; REQ-S-004 | DD-I-004 |
 | DD-M-006 | controller | 평가주기마다 모듈을 순서대로 호출하고 확정 출력을 보관한다. | ARCH-C-006 | REQ-F-013, 015, 016, REQ-Q-001, REQ-Q-003 | DD-I-006 |
 | DD-M-009 | ecl_types | 공유 데이터 형식만 정의한다 (동작 없음). | ARCH-C-009 | REQ-C-001, REQ-C-005 | DD-I-009 |
 
@@ -178,3 +178,14 @@ ECL_NODISCARD ecl_status_t ecl_controller_step(ecl_controller_t* ctl, const ecl_
 ## 5. 추적성
 
 요구사항 ↔ 모듈은 `docs/traceability/trace-matrix.md` 의 DD 열에 반영한다.
+
+## 6. 변경 이력
+
+### 이터레이션 2 (rule_engine, DD-M-004)
+
+- 규칙 형식을 도어별 효과로 확장했다: `rule_fn` 은 `rule_effect_t`(`applies_left`, `applies_right`, 도어별 출력, priority, reason)를 값으로 돌려준다. 규칙이 없으면 효과 구조체가 0 이다. (이터레이션 1 의 "적용 여부 int + 출력 인자" 형식을 대체. 이유: 규칙 3 이 한쪽 도어에만 효과를 내므로 REQ-F-017 도어 독립을 표현해야 한다.)
+- `find_rule(in, confirmed, door, effect)` 가 규칙표를 순위 순으로 훑어 해당 도어(좌, 우, 어느 한쪽)에 처음 효과를 내는 규칙을 찾는다. 도어 출력은 좌/우 각각의 승자에서, priority_reason/reason_code 는 "어느 한쪽 도어에 효과를 내는 최상위 규칙"에서 가져온다. 효과를 내는 규칙이 없으면 HOLD.
+- 규칙 2 `rule_crash`: `crash_status` 가 유효한 CONFIRMED 이면 좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED (REQ-S-001, REQ-S-005; 확정인 동안 매 주기 같은 결과이므로 유지된다).
+- 규칙 3 `rule_approach`: 좌/우 접근위험이 각각 유효한 TRUE 이면 해당 도어 LOCK, priority APPROACH, reason APPROACH_RISK_HOLD (REQ-S-002, S-006, S-007). 해제 요청은 규칙 8(이터 3)이 순위가 낮아 적용되지 않으므로 억제된다.
+- HOLD 이유(`hold_reason`): `all_valid == 0` 이면 INPUT_STALE/INPUT_INVALID, 아니면 `crash_status == PENDING` 이면 CRASH_PENDING, 아니면 NONE (REQ-F-029, 입력 오류 이유가 우선).
+- `ecl_rule_decide` 시그니처는 그대로다. override 메모리 인자는 이터레이션 3 에서 추가한다.
