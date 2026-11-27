@@ -1,0 +1,24 @@
+# 시스템 시험 보고 — 이터레이션 1
+
+작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1 면제(docs/review/review-waiver-iteration-1.md).
+환경: Docker 이미지 claudeclangbuild (Clang/LLVM 23.1.6, GoogleTest v1.18.0), 명령: bash docker/run.sh ci/scripts/run-all.sh
+
+## 요약
+
+| 항목 | 결과 |
+|---|---|
+| 요구사항 커버리지 (요구사항 ↔ ST 케이스) | 61/61 = 100% (`check-req-coverage.sh`) |
+| 시스템 테스트 케이스 | 102개 (기능 87, 비기능 15) |
+| 이번 이터레이션에서 자동 실행 | 53개, 성공 53, 실패 0 (`test/system/ecl_system_test.cpp`) |
+| 미실시 (이터레이션 2~5 구현 후 실행) | 39개 |
+| 검사 대기 (제한·제약, G3/G4 제출 전 수행) | 10개 |
+
+- 요구사항 커버리지는 "케이스가 연결되어 있는가"의 지표다. 미실시·검사 대기 케이스는 실행 결과가 아니다. 목록과 상태는 `system-test-cases.md`.
+- 명세: `system-test-spec.xlsx` (기능/비기능 시트, 추적성, 커버리지 요약, 가정·질의, PICT 모델 PW-01). 재생성: `python docs/test/system/gen_system_tests.py`.
+- PICT 모델 `pict_PW-01.txt` 에서 11개 조합을 도출했다. 기대값은 SRS 1.3절 규칙표에서 계산했다. 규칙 2~8 이 구현되는 이터레이션 2~3 에서 실행한다.
+- 시험은 실제 컴포넌트(controller 경계)에서 실행했으며 대체 객체를 쓰지 않았다.
+
+## 한계
+
+- OEM 확인 전 가정(OQ-01, OQ-02 등)에 의존하는 케이스의 기대값은 잠정이다 (명세 "가정 및 질의" 시트).
+- 한 번의 실행 결과만 있으며 시험 환경은 PC/SIL 호스트 빌드이다 (CR-001 OEM 승인 대기).

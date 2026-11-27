@@ -238,3 +238,37 @@
 - `CLAUDE.md` 4, 4.2, 4.3, 7절과 스킬(implementation, unit-test, integration-test, detailed-design, review code 체크리스트)을 C 기준으로 갱신.
 - 해결한 문제: (9) Cppcheck `constParameterCallback` — 억제하지 않고 콜백이 호출 횟수를 기록하도록 설계 정리, (10) 매크로 주석에 HITL 태그 누락.
 - OEM 문서 공개 저장소 반영은 사용자 승인에 따라 PR 단계에서 `OEM/`의 로컬 제외를 풀고 포함. 아직 커밋/PR 없음.
+
+### 18. PR #2 생성과 이터레이션 1 시작 (요구사항 분석)
+
+**프롬프트**
+
+> PR 만들고 이터레이션 1 시작해. 네가 요청한 것은 모두 너의 권장안으로 진행해
+
+**답변 요지**
+
+- PR #2(`feature/c-language-env` → `develop`) 생성(OEM 사양서 포함). `feature/iteration-1` 에서 SRS(기능 36, 품질 4, 제한 4, 제약 6)·안전 요구사항 9건·추적 매트릭스를 작성. `reviewer` 1차 리뷰는 불통과(Major 16, Minor 14, Info 8). 규칙표·상태표·이유코드·충돌 등록부·CR-001·사용 사례로 SRS v0.2 조치.
+
+### 19. 리뷰 면제와 아키텍처~시스템 테스트
+
+**프롬프트**
+
+> 이번 이터레이션은 리뷰는 넘어가자. 됐다고 치고 다음 작업해.
+
+**답변 요지**
+
+- 리뷰를 "통과"로 기록하지 않고 `docs/review/review-waiver-iteration-1.md`에 면제로 남김 (요구사항 재리뷰는 미완료, 이터레이션 2부터 게이트 재적용).
+- 아키텍처(컴포넌트 9, 인터페이스 9), 상세 설계, TDD(red 확인 후 green) 구현: input_validation, command_intake, status_eval, rule_engine(규칙 1·HOLD), controller.
+- 시험: TDD 6, 단위 53(MC/DC 100%), 통합 7(함수 100%), 시스템 명세 102건(PICT PW-01 11조합, 요구사항 61/61), 실행 53건 통과. `run-all.sh` 전 단계 통과.
+- 해결한 문제: (11) Cppcheck `constVariable`, (12) .c 내부 매크로·타입 Doxygen 경고(정적 상수와 문서화로 해결), (13) GoogleTest 매크로 인자의 템플릿 쉼표, (14) 규칙 엔진 반복문 조건이 독립 시험 불가(구조 변경).
+
+### 20. lizard CSV 출력 추가
+
+**프롬프트**
+
+> check-lizard.sh에 lizard --csv 출력을 한 줄 추가합니다. CSV에는 함수별 전체 라인 수가 들어 있습니다. ... 이것좀 반영해줘
+
+**답변 요지**
+
+- `ci/scripts/check-lizard.sh`에 `lizard --csv` 출력(`$REPORT_DIR/lizard.csv`)을 한 줄 추가. 실행 확인(함수별 CSV 생성).
+- `run-tests.sh`에 `system` 스위트(성공률 100%)와 `run-all.sh` 단계를 추가.

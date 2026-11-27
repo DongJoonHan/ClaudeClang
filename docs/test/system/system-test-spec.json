@@ -1,0 +1,3182 @@
+{
+ "project": "전자식 차일드락 제어 SW",
+ "basis_document": "docs/requirements/software-requirements.md v0.2, docs/safety/safety-requirements.md v0.2",
+ "basis": [
+  {
+   "id": "REQ-F-001",
+   "title": "SW는 vehicle_speed_kph 가 0.0 이상 300.0 이하의 유효 수치가 아니거나 누락되면 그 값을 INVALID로 해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-002",
+   "title": "SW는 gear 가 P, N, D, R 중 하나가 아니거나 누락되면 그 값을 INVALID로 해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-003",
+   "title": "SW는 source_timestamp_s 가 유효 수치가 아니거나 누락되면 그 값을 INVALID로 해야 한다. 이 값이 INVALID이면 입력 묶음의 신선도를 ",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-004",
+   "title": "SW는 crash_status 가 NONE, PENDING, CONFIRMED 중 하나가 아니면(누락·미정 값 포함) 그 값을 INVALID로 해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-005",
+   "title": "SW는 rear_left_approach_risk, rear_right_approach_risk, fire_detected, overtemperature_dete",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-006",
+   "title": "SW는 운전자 명령의 side 가 left, right, all 이 아니거나 누락되면 그 명령을 거절해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-018",
+   "title": "SW는 운전자 명령의 action 이 lock, unlock 이 아니거나 누락되면 그 명령을 거절해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-019",
+   "title": "SW는 운전자 명령의 source 가 physical_button, avn, voice, mobile_app 이 아니거나 누락되면 그 명령을 거절해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-007",
+   "title": "SW는 거절된 운전자 명령을 규칙 평가에 사용하지 않아야 하고, 거절 이유코드(CMD_REJECTED_INVALID)를 기록해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-008",
+   "title": "SW는 운전자 명령의 요청 시각으로 같은 평가주기 입력 묶음의 source_timestamp_s 를 사용해야 한다 (사용처: REQ-F-023 의 10초 판정).",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-009",
+   "title": "SW는 한 평가주기에 운전자 명령이 2건 이상 들어오면 첫 1건만 평가에 사용하고 나머지는 거절 이유코드 CMD_REJECTED_EXTRA 로 기록해야 한다 (가",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-010",
+   "title": "SW는 각 규칙을 그 규칙이 사용하는 입력이 모두 유효할 때만 적용 가능한 것으로 취급해야 한다 (사용 입력은 1.3절 표).",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-011",
+   "title": "SW는 적용 가능한 규칙이 어느 도어에도 효과를 내지 않으면 그 도어의 출력을 확정 출력으로 유지해야 한다 (가정 A-04).",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-012",
+   "title": "SW는 한 도어에 효과를 내는 적용 가능한 규칙이 여러 개이면 1.3절 표에서 순위가 가장 높은 규칙의 효과를 그 도어의 출력으로 해야 한다 (가정 A-02).",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-013",
+   "title": "SW는 10 ms 평가주기(가정 A-01)마다 입력 묶음을 평가해 출력과 상태를 갱신해야 한다.",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-014",
+   "title": "SW는 매 평가주기에 상태를 1.4절 표의 우선순서(FAULT, DEGRADED, OFF, ACTIVE)로 정확히 하나 정해 공개해야 한다. 조건이 해소되면 다음",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-015",
+   "title": "SW는 전원 투입 직후 첫 평가주기 전에 좌/우 출력을 RELEASE로 해야 한다 (가정 A-12).",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-016",
+   "title": "SW는 매 평가주기에 lock_left 와 lock_right 를 LOCK 또는 RELEASE 값으로 공개해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-017",
+   "title": "SW는 좌 출력과 우 출력을 각각 독립적으로 결정해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-020",
+   "title": "OEM-SR-001, OEM-SR-002, OEM-FR-001~007",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-021",
+   "title": "SW는 정지 상태에서 유효한 운전자 명령의 side(left/right/all)가 가리키는 도어에만 action(lock는 LOCK, unlock는 RELEASE",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-034",
+   "title": "SW는 physical_button, avn, voice, mobile_app 네 source 를 같은 결과가 나오도록 동등하게 처리해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-035",
+   "title": "SW는 이동 중에 들어온 유효한 운전자 명령을 적용하지 않고 이유코드 CMD_REJECTED_MOVING 으로 기록해야 한다 (가정 A-07).",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-022",
+   "title": "SW는 유효한 vehicle_speed_kph 가 3.0 이상인 첫 평가주기부터 좌/우 출력을 LOCK으로 해야 한다 (이 규칙보다 순위가 높은 규칙이 효과를 내",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-023",
+   "title": "SW는 접근위험으로 억제된 도어에 대해, 첫 억제 후 10초 이하(요청 시각은 REQ-F-008)에 그 도어를 가리키는 해제(unlock) 명령이 다시 입력되면 ",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-036",
+   "title": "SW는 override 상태의 도어를 RELEASE로 하고 해당 도어의 접근위험이 FALSE가 될 때까지 규칙 3(APPROACH)을 적용하지 않아야 하며, 이유",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-024",
+   "title": "SW는 조회 요청에 현재 좌/우 출력, 상태, 입력별 유효성, 최근 결정의 이유코드를 응답으로 제공해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-025",
+   "title": "SW는 fire_detected, overtemperature_detected, adult_present 중 하나가 유효한 TRUE이면 다음 평가주기에 좌/우 출",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-026",
+   "title": "SW는 isofix_left 가 유효한 TRUE이면 좌 출력을, isofix_right 가 유효한 TRUE이면 우 출력을 다음 평가주기에 LOCK으로 해야 한다 ",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-027",
+   "title": "SW는 ignition_on 이 유효한 FALSE인 첫 평가주기에 좌/우 출력을 RELEASE로 해야 한다 (이 규칙보다 순위가 높은 규칙이 효과를 내지 않는 경",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-029",
+   "title": "SW는 crash_status 가 PENDING이면 규칙 2(CRASH)를 적용하지 않고 이유코드 CRASH_PENDING 만 기록해야 한다. 다른 규칙의 적용은",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-028",
+   "title": "SW는 결정마다 부록 A의 reason_code 중 하나를 생성해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-037",
+   "title": "SW는 결정마다 priority_reason(출력을 정한 규칙 이름, 1.3절 표)을 생성하고 이를 부록 A의 대응 reason_code 로도 매핑해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-030",
+   "title": "SW는 최근 결정 100건을 메모리에 보존하고 101건째 입력 시 가장 오래된 1건을 제거해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-038",
+   "title": "SW는 결정 이력을 조회할 때 오래된 것부터 순서대로 제공해야 한다.",
+   "type": "기능",
+   "asil": "QM"
+  },
+  {
+   "id": "REQ-F-031",
+   "title": "SW는 결정 이력에 이벤트 ID, 시각, 좌/우 출력, 상태, reason_code 외의 필드를 저장하지 않아야 한다 (허용 필드 목록은 가정 A-10).",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-032",
+   "title": "SW는 결정 이력을 프로세스 메모리에만 두고 재기동 후에 남기지 않아야 한다.",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-F-033",
+   "title": "SW는 표시 응답을 직렬화하지 못하면 HTTP 500 오류를 반환해야 한다 (Web 시뮬레이터 경로).",
+   "type": "기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 조합·이벤트 규칙: 페어와이즈·상태 전이·WoW 로 다룸"
+  },
+  {
+   "id": "REQ-Q-001",
+   "title": "SW는 같은 초기 상태와 같은 입력 순서에 대해, 고정 시계로 같은 벡터를 1,000회 재생했을 때 공개 결과(부록 B 정의)의 해시가 1,000회 모두 같아야 ",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-Q-002",
+   "title": "SW는 영상, 음성 원본, 개인 식별자를 입력으로 받거나 저장하지 않아야 한다. 근거: 이 정보는 개인정보이며 저장·전달을 하지 않는 것이 기밀성 확보의 최소 수",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-Q-004",
+   "title": "SW는 성인 존재를 불리언 입력(adult_present)으로만 받아야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-Q-003",
+   "title": "SW는 한 평가주기의 처리를 3 ms 이내에 끝내야 한다 (PC/SIL 호스트 기준, 가정 A-11).",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-L-001",
+   "title": "SW는 도어 래치와 구동기 HW, CAN/LIN 드라이버, 전기 출력을 제공하지 않는다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-L-002",
+   "title": "SW는 좌/우 출력이 구동기에 실제로 적용되었는지(feedback)를 검증하지 않는다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-L-003",
+   "title": "SW는 센서 성능, 진단 설계, 영상 원본 처리, 양산 HMI 승인, 사용성 인증을 포함하지 않는다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-L-004",
+   "title": "SW는 HIL, 실차, 타깃 ECU/RTOS 시험을 포함하지 않고, 인증·법규 적합성을 주장하지 않는다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-001",
+   "title": "제품 코드는 C17로 작성하고 Clang 18 이상으로 컴파일해야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-002",
+   "title": "SW는 PC/SIL 호스트 빌드(Docker 이미지 `claudeclangbuild`)에서 실행되어야 한다. OEM 사양서 3절의 \"Python 3.12 PC/S",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-003",
+   "title": "표시·조작 환경은 Web 시뮬레이터로 제공하되, 제어 판단은 C 코어만 수행해야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-004",
+   "title": "SW는 OEM이 제공한 ASIL B 할당을 입력으로 사용하고 HARA나 ASIL 결정 근거를 재구성하지 않아야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-005",
+   "title": "개발 산출물과 소스는 CLAUDE.md 2절의 품질 기준을 충족해야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-C-006",
+   "title": "ISO 26262-6 활동은 OEM ASIL B 할당 입력을 전제로 선정한 일부만 적용하며 준수·적합을 주장하지 않아야 한다.",
+   "type": "비기능",
+   "asil": "QM",
+   "ep_bva_na_reason": "입력 범위가 없는 검사·측정·재생 항목 (성능 측정, 검사, 재생으로 검증)"
+  },
+  {
+   "id": "REQ-S-001",
+   "title": "SW는 유효한 crash_status 가 CONFIRMED가 되면 후석 좌/우 출력을 300 ms 이내에 RELEASE로 해야 한다. 단, 규칙 1(sensor_",
+   "type": "비기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-005",
+   "title": "SW는 유효한 crash_status 가 CONFIRMED인 동안 이후 평가주기에도 좌/우 출력을 RELEASE로 유지해야 한다.",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-002",
+   "title": "SW는 유효한 후측방 접근위험이 TRUE인 도어의 출력을 LOCK으로 해야 한다 (override 중인 도어 제외: REQ-F-036, CF-03).",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-006",
+   "title": "SW는 접근위험이 TRUE인 도어에 대한 해제 요청을 억제해야 한다 (RELEASE 요청에도 LOCK 유지).",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-007",
+   "title": "SW는 접근위험으로 해제 요청을 억제할 때 원인을 이유코드 APPROACH_RISK_HOLD 로 기록해야 한다.",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-003",
+   "title": "SW는 필수 입력이 200 ms 를 초과해 갱신되지 않으면 그 시점부터 100 ms 이내에 상태를 DEGRADED로 해야 한다 (판정 단위: A-05).",
+   "type": "비기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-008",
+   "title": "SW는 형식 또는 범위 오류로 INVALID가 된 입력을 제어 평가에 사용하지 않아야 한다 (INVALID 판정은 REQ-F-001~005).",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-004",
+   "title": "SW는 유효한 sensor_fault 가 TRUE인 첫 평가주기에 새 명령을 적용하지 않고 직전 확정 출력을 유지해야 한다.",
+   "type": "기능",
+   "asil": "B"
+  },
+  {
+   "id": "REQ-S-009",
+   "title": "SW는 유효한 sensor_fault 가 TRUE인 동안 상태를 FAULT로 하고 경고코드 W_SENSOR_FAULT 를 제공해야 한다.",
+   "type": "기능",
+   "asil": "B"
+  }
+ ],
+ "test_cases": [
+  {
+   "id": "ST-F-001",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001",
+    "REQ-F-002",
+    "REQ-F-004",
+    "REQ-F-005",
+    "REQ-F-016",
+    "REQ-F-011"
+   ],
+   "purpose": "정상 입력(유효 클래스 대표값)이 ACTIVE 로 처리되고 이전 확정 출력이 유지됨을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "10.0",
+    "gear": "D",
+    "crash_status": "NONE",
+    "불리언 9종": "ignition_on=TRUE, 나머지 FALSE",
+    "timestamp": "1.0 s, 평가 시각 1.01 s"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 만든다",
+    "정상 입력으로 1주기를 실행한다",
+    "상태와 출력을 관측한다"
+   ],
+   "expected": "상태 ACTIVE, 경고 없음, 좌 LOCK, 우 RELEASE (규칙 없음 → HOLD, 이유 NONE)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-002",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001"
+   ],
+   "purpose": "속도 하한 경계값 0.0 km/h 가 유효임을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "0.0"
+   },
+   "procedure": [
+    "속도만 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 ACTIVE, 경고 없음",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-003",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001"
+   ],
+   "purpose": "속도 상한 경계값 300.0 km/h 가 유효임을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "300.0"
+   },
+   "procedure": [
+    "속도만 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 ACTIVE, 경고 없음",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-004",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001",
+    "REQ-S-008"
+   ],
+   "purpose": "속도 하한 미만(-0.1) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "-0.1"
+   },
+   "procedure": [
+    "속도만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-005",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001",
+    "REQ-S-008"
+   ],
+   "purpose": "속도 상한 초과(300.1) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "300.1"
+   },
+   "procedure": [
+    "속도만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-006",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001",
+    "REQ-S-008"
+   ],
+   "purpose": "속도 누락(누락) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "누락"
+   },
+   "procedure": [
+    "속도만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-007",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-001",
+    "REQ-S-008"
+   ],
+   "purpose": "속도 NaN(NaN) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "vehicle_speed_kph": "NaN"
+   },
+   "procedure": [
+    "속도만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-008",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-002"
+   ],
+   "purpose": "기어 코드 0(P) 가 유효임을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "gear": "P"
+   },
+   "procedure": [
+    "기어만 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 ACTIVE",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-009",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-002"
+   ],
+   "purpose": "기어 코드 3(R) 가 유효임을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "gear": "R"
+   },
+   "procedure": [
+    "기어만 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 ACTIVE",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-010",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-002",
+    "REQ-S-008"
+   ],
+   "purpose": "기어 범위 밖 는 INVALID 이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "gear": "미정 코드 4"
+   },
+   "procedure": [
+    "기어만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 출력 유지",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-011",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-002",
+    "REQ-S-008"
+   ],
+   "purpose": "기어 누락 는 INVALID 이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "gear": "누락"
+   },
+   "procedure": [
+    "기어만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 출력 유지",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-012",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-003",
+    "REQ-S-003",
+    "REQ-S-008"
+   ],
+   "purpose": "timestamp 누락 이면 입력 묶음 전체가 INVALID 이다 (신선도 판단 불가).",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "source_timestamp_s": "누락"
+   },
+   "procedure": [
+    "timestamp 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID(stale 아님), 출력 유지",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-013",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-003",
+    "REQ-S-003",
+    "REQ-S-008"
+   ],
+   "purpose": "timestamp NaN 이면 입력 묶음 전체가 INVALID 이다 (신선도 판단 불가).",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "source_timestamp_s": "NaN"
+   },
+   "procedure": [
+    "timestamp 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID(stale 아님), 출력 유지",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-014",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-004"
+   ],
+   "purpose": "충돌 상태 NONE 이 유효하고 다른 영향이 없음을 확인한다 (PENDING/CONFIRMED 는 REQ-F-029, REQ-S-001 케이스).",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "crash_status": "NONE"
+   },
+   "procedure": [
+    "충돌 상태 NONE 으로 1주기를 실행한다"
+   ],
+   "expected": "상태 ACTIVE",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-015",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-004",
+    "REQ-S-008"
+   ],
+   "purpose": "충돌 상태 범위 밖 는 INVALID 이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "crash_status": "미정 코드 3"
+   },
+   "procedure": [
+    "충돌 상태만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 출력 유지",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-016",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-004",
+    "REQ-S-008"
+   ],
+   "purpose": "충돌 상태 누락 는 INVALID 이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "crash_status": "누락"
+   },
+   "procedure": [
+    "충돌 상태만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 출력 유지",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-017",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "rear_left_risk 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "rear_left_risk": "2"
+   },
+   "procedure": [
+    "rear_left_risk 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-018",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "rear_left_risk 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "rear_left_risk": "누락"
+   },
+   "procedure": [
+    "rear_left_risk 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-019",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "rear_right_risk 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "rear_right_risk": "2"
+   },
+   "procedure": [
+    "rear_right_risk 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-020",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "rear_right_risk 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "rear_right_risk": "누락"
+   },
+   "procedure": [
+    "rear_right_risk 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-021",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "fire_detected 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "fire_detected": "2"
+   },
+   "procedure": [
+    "fire_detected 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-022",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "fire_detected 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "fire_detected": "누락"
+   },
+   "procedure": [
+    "fire_detected 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-023",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "overtemperature_detected 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "overtemperature_detected": "2"
+   },
+   "procedure": [
+    "overtemperature_detected 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-024",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "overtemperature_detected 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "overtemperature_detected": "누락"
+   },
+   "procedure": [
+    "overtemperature_detected 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-025",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "adult_present 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "adult_present": "2"
+   },
+   "procedure": [
+    "adult_present 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-026",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "adult_present 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "adult_present": "누락"
+   },
+   "procedure": [
+    "adult_present 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-027",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "isofix_left 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "isofix_left": "2"
+   },
+   "procedure": [
+    "isofix_left 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-028",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "isofix_left 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "isofix_left": "누락"
+   },
+   "procedure": [
+    "isofix_left 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-029",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "isofix_right 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "isofix_right": "2"
+   },
+   "procedure": [
+    "isofix_right 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-030",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "isofix_right 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "isofix_right": "누락"
+   },
+   "procedure": [
+    "isofix_right 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-031",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "ignition_on 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "ignition_on": "2"
+   },
+   "procedure": [
+    "ignition_on 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-032",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "ignition_on 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "ignition_on": "누락"
+   },
+   "procedure": [
+    "ignition_on 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-033",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "sensor_fault 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "sensor_fault": "2"
+   },
+   "procedure": [
+    "sensor_fault 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-034",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-005",
+    "REQ-S-008"
+   ],
+   "purpose": "sensor_fault 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "sensor_fault": "누락"
+   },
+   "procedure": [
+    "sensor_fault 만 무효로 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_INVALID, 이유 INPUT_INVALID, 출력 유지 (FAULT/RELEASE/LOCK 규칙 미적용)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-035",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-006",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 side 가 범위 밖 3 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.side": "3",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-036",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-006",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 side 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.side": "누락",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-037",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-018",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 action 가 범위 밖 2 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.action": "2",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-038",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-018",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 action 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.action": "누락",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-039",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-019",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 source 가 범위 밖 4 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.source": "4",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-040",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-019",
+    "REQ-F-007"
+   ],
+   "purpose": "운전자 명령의 source 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "command.source": "누락",
+    "나머지 명령 필드": "유효"
+   },
+   "procedure": [
+    "명령 1건과 함께 1주기를 실행한다",
+    "명령 거절 이유와 출력을 관측한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_INVALID, 출력 변화 없음(좌 LOCK, 우 RELEASE)",
+   "techniques": [
+    "동치 분할",
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-041",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-009",
+    "REQ-F-007"
+   ],
+   "purpose": "한 평가주기에 유효한 명령 2건이 오면 첫 1건만 평가에 쓰고 나머지는 거절 이유로 기록한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "commands": "좌 잠금(물리 버튼), 우 해제(AVN)"
+   },
+   "procedure": [
+    "명령 2건과 함께 1주기를 실행한다"
+   ],
+   "expected": "command_note = CMD_REJECTED_EXTRA",
+   "techniques": [
+    "동치 분할",
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-042",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-008",
+    "REQ-F-023"
+   ],
+   "purpose": "운전자 명령의 요청 시각이 입력 묶음의 source_timestamp_s 임을 override 10초 경계로 확인한다 (평가 시각이 달라도 timestamp 기준).",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "접근위험": "TRUE(좌)",
+    "해제 명령 1": "timestamp 100.0 s, 평가 시각 100.0 s",
+    "해제 명령 2": "timestamp 109.9 s, 평가 시각 130.0 s(지연 평가)"
+   },
+   "procedure": [
+    "좌 접근위험 TRUE 로 첫 해제 명령을 보낸다 (억제됨)",
+    "timestamp 109.9, 평가 시각 130.0 으로 같은 해제 명령을 다시 보낸다"
+   ],
+   "expected": "두 번째 명령이 override 로 처리된다 (timestamp 차 9.9 s ≤ 10 s). 평가 시각 차(30 s)를 쓰면 override 되지 않으므로 구분된다.",
+   "techniques": [
+    "경계값 분석",
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-043",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-014",
+    "REQ-S-004",
+    "REQ-S-009",
+    "REQ-F-010",
+    "REQ-F-011"
+   ],
+   "purpose": "sensor_fault 가 유효한 TRUE 이면 첫 주기에 FAULT, 경고, 출력 유지, 규칙 1 이 적용된다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "sensor_fault": "TRUE",
+    "이전 확정 출력": "좌 LOCK, 우 RELEASE"
+   },
+   "procedure": [
+    "sensor_fault 를 TRUE 로 1주기를 실행한다"
+   ],
+   "expected": "상태 FAULT, 경고 SENSOR_FAULT, 좌 LOCK, 우 RELEASE, priority SENSOR_FAULT, reason SENSOR_FAULT",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-044",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-010",
+    "REQ-S-004",
+    "REQ-S-008"
+   ],
+   "purpose": "sensor_fault 가 유효한 TRUE 이고 다른 필드(속도)가 INVALID 이어도 규칙 1 은 자신의 입력이 유효하므로 적용된다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "sensor_fault": "TRUE",
+    "vehicle_speed_kph": "500 (범위 밖)"
+   },
+   "procedure": [
+    "두 값을 바꿔 1주기를 실행한다"
+   ],
+   "expected": "상태 FAULT, 경고 SENSOR_FAULT|INPUT_INVALID, 출력 유지, priority SENSOR_FAULT",
+   "techniques": [
+    "동치 분할",
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-045",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-010",
+    "REQ-F-014"
+   ],
+   "purpose": "sensor_fault 입력이 INVALID 이면 규칙 1 은 적용되지 않고 FAULT 가 아니다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "sensor_fault": "2 (불리언 아님)"
+   },
+   "procedure": [
+    "sensor_fault 만 무효로 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED (FAULT 아님), priority HOLD",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-046",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-014",
+    "REQ-S-003"
+   ],
+   "purpose": "stale 입력(나이 0.25 s)은 DEGRADED 이고 INPUT_STALE 경고, 이유 INPUT_STALE, 출력 유지이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "timestamp": "1.0 s",
+    "평가 시각": "1.25 s"
+   },
+   "procedure": [
+    "평가 시각만 1.25 로 1주기를 실행한다"
+   ],
+   "expected": "상태 DEGRADED, 경고 INPUT_STALE, 이유 INPUT_STALE, 출력 유지",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-047",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-014"
+   ],
+   "purpose": "점화가 꺼지면(유효) 상태가 OFF 이다 (이전 출력이 RELEASE 인 경우로 출력과 분리해 확인).",
+   "preconditions": [
+    "이전 확정 출력: 좌/우 RELEASE"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "ignition_on": "FALSE"
+   },
+   "procedure": [
+    "이전 출력 좌/우 RELEASE 에서 ignition_on=FALSE 로 1주기를 실행한다"
+   ],
+   "expected": "상태 OFF, 경고 없음",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-048",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-014",
+    "REQ-S-009"
+   ],
+   "purpose": "상태 우선순서: sensor_fault(FAULT) > 입력 오류(DEGRADED) > OFF.",
+   "preconditions": [
+    "이전 확정 출력: 좌/우 RELEASE"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "조합": "점화 FALSE + 속도 500 → DEGRADED, 점화 FALSE + sensor_fault TRUE → FAULT"
+   },
+   "procedure": [
+    "점화 FALSE 와 속도 500 으로 1주기",
+    "점화 FALSE 와 sensor_fault TRUE 로 1주기"
+   ],
+   "expected": "첫째 DEGRADED, 둘째 FAULT",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-049",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-014",
+    "REQ-F-010"
+   ],
+   "purpose": "오류가 해소되면 다음 평가주기에 자동으로 ACTIVE 로 복귀한다 (DEGRADED 와 FAULT 모두).",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "주기 1": "속도 500",
+    "주기 2": "정상",
+    "주기 3": "sensor_fault TRUE",
+    "주기 4": "정상"
+   },
+   "procedure": [
+    "4주기를 순서대로 실행한다"
+   ],
+   "expected": "주기 1 DEGRADED, 2 ACTIVE(이유 NONE), 3 FAULT, 4 ACTIVE(이유 NONE)",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-050",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-015",
+    "REQ-F-016"
+   ],
+   "purpose": "전원 투입 직후 첫 평가주기의 출력은 좌/우 RELEASE 이고 값이 LOCK 또는 RELEASE 로 공개된다.",
+   "preconditions": [
+    "초기화 직후"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "입력": "정상"
+   },
+   "procedure": [
+    "제어기를 초기화한 직후 1주기를 실행한다"
+   ],
+   "expected": "좌 RELEASE, 우 RELEASE, 상태 ACTIVE",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-051",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-013",
+    "REQ-F-016"
+   ],
+   "purpose": "10 ms 평가주기로 100주기를 실행하고, 오류 입력이 같은 주기에 상태에 반영됨(지연 없음)을 확인한다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "평가 시각": "1.00 + 0.01 k s (k=0..99)",
+    "입력": "홀수 k 에서 속도 500"
+   },
+   "procedure": [
+    "100주기를 실행하며 매 주기 상태를 관측한다"
+   ],
+   "expected": "짝수 k: ACTIVE, 홀수 k: DEGRADED (입력 오류가 같은 주기에 반영)",
+   "techniques": [
+    "상태 전이",
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-052",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-017"
+   ],
+   "purpose": "좌/우 출력이 독립적으로 결정됨을 확인한다 (한쪽 규칙이 반대쪽 출력을 바꾸지 않음).",
+   "preconditions": [
+    "이전 확정 출력: 좌 RELEASE, 우 LOCK",
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "접근위험(좌)": "TRUE",
+    "이전 확정 출력": "좌 RELEASE, 우 LOCK"
+   },
+   "procedure": [
+    "좌만 접근위험 TRUE 로 1주기를 실행한다"
+   ],
+   "expected": "좌 LOCK(규칙 3), 우 LOCK 유지(규칙 없음)",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-053",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-S-001",
+    "REQ-S-005"
+   ],
+   "purpose": "충돌 CONFIRMED 가 유효하면 300 ms 이내(첫 평가주기 이후 ≤ 30 주기)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "crash_status": "CONFIRMED (t0 부터 3 s 유지)",
+    "이전 확정 출력": "좌 LOCK, 우 LOCK"
+   },
+   "procedure": [
+    "이전 출력을 좌/우 LOCK 으로 한다",
+    "t0 에 CONFIRMED 를 주입하고 10 ms 주기로 300 주기를 실행한다",
+    "RELEASE 가 된 첫 시각과 이후 출력을 관측한다"
+   ],
+   "expected": "RELEASE 가 t0 부터 300 ms 이내에 되고, 이후 300주기 동안 계속 RELEASE",
+   "techniques": [
+    "경계값 분석",
+    "성능 측정"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-054",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-001"
+   ],
+   "purpose": "충돌 전이 에서 RELEASE 가 된다.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "crash_status": "직전 상태 NONE → CONFIRMED 전이"
+   },
+   "procedure": [
+    "전이를 입력한다",
+    "다음 평가주기 출력을 관측한다"
+   ],
+   "expected": "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-055",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-001"
+   ],
+   "purpose": "충돌 PENDING 경유 에서 RELEASE 가 된다.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "crash_status": "PENDING → CONFIRMED 전이"
+   },
+   "procedure": [
+    "전이를 입력한다",
+    "다음 평가주기 출력을 관측한다"
+   ],
+   "expected": "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-056",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-029"
+   ],
+   "purpose": "충돌 PENDING 은 출력을 바꾸지 않고 CRASH_PENDING 만 기록하며 다른 규칙은 영향받지 않는다.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "crash_status": "PENDING",
+    "추가": "속도 10 km/h"
+   },
+   "procedure": [
+    "PENDING 으로 1주기",
+    "PENDING + 속도 3.0 km/h 로 1주기"
+   ],
+   "expected": "첫째: 출력 유지, 이유 CRASH_PENDING / 둘째: 규칙 7 에 의해 LOCK (PENDING 이 막지 않음)",
+   "techniques": [
+    "동치 분할",
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-057",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-002",
+    "REQ-S-006",
+    "REQ-S-007",
+    "REQ-F-017"
+   ],
+   "purpose": "좌 접근위험 TRUE 이면 좌 LOCK, 좌 해제 요청 억제, 억제 이유 기록, 우는 영향 없음.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "rear_left_risk": "TRUE",
+    "명령": "좌 해제(AVN), 정지 상태",
+    "이전 확정 출력": "좌/우 RELEASE"
+   },
+   "procedure": [
+    "명령과 함께 1주기를 실행한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, 이유 APPROACH_RISK_HOLD, priority APPROACH",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-058",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-S-002"
+   ],
+   "purpose": "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.",
+   "preconditions": [
+    "이터레이션 2 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2 이후 실행)",
+   "inputs": {
+    "주기 1": "좌 접근위험 TRUE",
+    "주기 2": "접근위험 FALSE + 좌 해제 명령"
+   },
+   "procedure": [
+    "두 주기를 실행한다"
+   ],
+   "expected": "주기 1 좌 LOCK, 주기 2 좌 RELEASE (규칙 8)",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-059",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #1: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "PENDING",
+    "approach_left": "1",
+    "emergency": "none",
+    "ignition_on": "1",
+    "isofix_left": "1",
+    "speed_kph": "0",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-060",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #2: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "1",
+    "crash_status": "NONE",
+    "approach_left": "0",
+    "emergency": "adult",
+    "ignition_on": "0",
+    "isofix_left": "0",
+    "speed_kph": "0",
+    "command": "left_unlock"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-061",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #3: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "PENDING",
+    "approach_left": "0",
+    "emergency": "adult",
+    "ignition_on": "1",
+    "isofix_left": "0",
+    "speed_kph": "10",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 RELEASE, 우 RELEASE, priority_reason EMERGENCY_RELEASE (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-062",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #4: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "CONFIRMED",
+    "approach_left": "1",
+    "emergency": "fire",
+    "ignition_on": "0",
+    "isofix_left": "1",
+    "speed_kph": "0",
+    "command": "left_unlock"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 RELEASE, 우 RELEASE, priority_reason CRASH (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-063",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #5: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "1",
+    "crash_status": "NONE",
+    "approach_left": "1",
+    "emergency": "fire",
+    "ignition_on": "1",
+    "isofix_left": "1",
+    "speed_kph": "10",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-064",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #6: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "1",
+    "crash_status": "PENDING",
+    "approach_left": "0",
+    "emergency": "fire",
+    "ignition_on": "0",
+    "isofix_left": "0",
+    "speed_kph": "0",
+    "command": "left_unlock"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-065",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #7: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "1",
+    "crash_status": "CONFIRMED",
+    "approach_left": "1",
+    "emergency": "adult",
+    "ignition_on": "1",
+    "isofix_left": "0",
+    "speed_kph": "10",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-066",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #8: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "1",
+    "crash_status": "CONFIRMED",
+    "approach_left": "0",
+    "emergency": "none",
+    "ignition_on": "1",
+    "isofix_left": "1",
+    "speed_kph": "0",
+    "command": "left_unlock"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-067",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #9: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "NONE",
+    "approach_left": "1",
+    "emergency": "adult",
+    "ignition_on": "0",
+    "isofix_left": "1",
+    "speed_kph": "0",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-068",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #10: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "NONE",
+    "approach_left": "1",
+    "emergency": "none",
+    "ignition_on": "1",
+    "isofix_left": "0",
+    "speed_kph": "10",
+    "command": "none"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 LOCK, 우 LOCK, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-069",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "purpose": "PICT 조합 #11: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "sensor_fault": "0",
+    "crash_status": "PENDING",
+    "approach_left": "0",
+    "emergency": "none",
+    "ignition_on": "0",
+    "isofix_left": "1",
+    "speed_kph": "0",
+    "command": "left_unlock"
+   },
+   "procedure": [
+    "이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다",
+    "입력 조합으로 1주기를 실행한다",
+    "출력과 priority_reason 을 관측한다"
+   ],
+   "expected": "좌 RELEASE, 우 RELEASE, priority_reason IGNITION_OFF (SRS 1.3절 규칙표에서 계산)",
+   "techniques": [
+    "페어와이즈(PICT)"
+   ],
+   "proposed": false,
+   "pict_model": "PW-01"
+  },
+  {
+   "id": "ST-F-070",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-021",
+    "REQ-F-034"
+   ],
+   "purpose": "정지 상태에서 네 입력 경로(source)와 side 3종이 선택한 도어에만 동작을 적용한다.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "source": "physical_button, avn, voice, mobile_app",
+    "side": "left, right, all",
+    "action": "lock, unlock"
+   },
+   "procedure": [
+    "정지·정상 입력에서 조합마다 명령을 보낸다"
+   ],
+   "expected": "side 가 가리키는 도어에만 action 적용, 네 source 의 결과가 같다",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-071",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-035"
+   ],
+   "purpose": "이동 중(속도 3.0 이상) 유효한 명령은 적용되지 않고 CMD_REJECTED_MOVING 으로 기록된다.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "속도": "3.0 km/h",
+    "명령": "좌 해제"
+   },
+   "procedure": [
+    "명령과 함께 1주기"
+   ],
+   "expected": "좌 LOCK(규칙 7), command_note CMD_REJECTED_MOVING",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-072",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-022"
+   ],
+   "purpose": "속도 2.9 km/h (직전) 에서 자동 잠금 판정.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "vehicle_speed_kph": "2.9"
+   },
+   "procedure": [
+    "이전 출력 RELEASE 에서 1주기"
+   ],
+   "expected": "자동 잠금 아님(HOLD)",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-073",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-022"
+   ],
+   "purpose": "속도 3.0 km/h (경계) 에서 자동 잠금 판정.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "vehicle_speed_kph": "3.0"
+   },
+   "procedure": [
+    "이전 출력 RELEASE 에서 1주기"
+   ],
+   "expected": "좌/우 LOCK (규칙 7, 이유 AUTO_LOCK_MOVING)",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-074",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-022"
+   ],
+   "purpose": "속도 3.1 km/h (직후) 에서 자동 잠금 판정.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "vehicle_speed_kph": "3.1"
+   },
+   "procedure": [
+    "이전 출력 RELEASE 에서 1주기"
+   ],
+   "expected": "좌/우 LOCK",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-075",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-023",
+    "REQ-F-036"
+   ],
+   "purpose": "첫 억제 후 10.0 s 에 같은 해제 재입력.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "간격": "10.0 s"
+   },
+   "procedure": [
+    "접근위험 TRUE 에서 해제 명령",
+    "10.0 s 후 같은 해제 명령"
+   ],
+   "expected": "override, override 면 좌 RELEASE 와 reason OVERRIDE",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-076",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-023",
+    "REQ-F-036"
+   ],
+   "purpose": "첫 억제 후 10.1 s 에 같은 해제 재입력.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "간격": "10.1 s"
+   },
+   "procedure": [
+    "접근위험 TRUE 에서 해제 명령",
+    "10.1 s 후 같은 해제 명령"
+   ],
+   "expected": "override 아님(첫 억제와 동일하게 LOCK 유지), override 면 좌 RELEASE 와 reason OVERRIDE",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-077",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-025"
+   ],
+   "purpose": "fire_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "fire_detected": "TRUE"
+   },
+   "procedure": [
+    "이전 좌/우 LOCK 에서 신호 주입 후 1주기"
+   ],
+   "expected": "좌/우 RELEASE, reason FIRE",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-078",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-025"
+   ],
+   "purpose": "overtemperature_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "overtemperature_detected": "TRUE"
+   },
+   "procedure": [
+    "이전 좌/우 LOCK 에서 신호 주입 후 1주기"
+   ],
+   "expected": "좌/우 RELEASE, reason OVERTEMP",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-079",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-025"
+   ],
+   "purpose": "adult_present 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "adult_present": "TRUE"
+   },
+   "procedure": [
+    "이전 좌/우 LOCK 에서 신호 주입 후 1주기"
+   ],
+   "expected": "좌/우 RELEASE, reason ADULT_PRESENT",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-080",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-026",
+    "REQ-F-017"
+   ],
+   "purpose": "isofix_left 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "입력": "isofix_left 만"
+   },
+   "procedure": [
+    "이전 좌/우 RELEASE 에서 1주기"
+   ],
+   "expected": "좌 LOCK, 우 RELEASE",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-081",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-026",
+    "REQ-F-017"
+   ],
+   "purpose": "isofix_right 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "입력": "isofix_right 만"
+   },
+   "procedure": [
+    "이전 좌/우 RELEASE 에서 1주기"
+   ],
+   "expected": "좌 RELEASE, 우 LOCK",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-082",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-027"
+   ],
+   "purpose": "ignition_on 이 FALSE 로 바뀐 첫 주기에 좌/우 RELEASE, 상태 OFF, 이유 IGNITION_OFF.",
+   "preconditions": [
+    "이터레이션 3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "inputs": {
+    "ignition_on": "TRUE→FALSE"
+   },
+   "procedure": [
+    "이전 좌/우 LOCK 에서 1주기"
+   ],
+   "expected": "좌/우 RELEASE, OFF, reason IGNITION_OFF",
+   "techniques": [
+    "상태 전이"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-083",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-028",
+    "REQ-F-037"
+   ],
+   "purpose": "각 규칙이 결정한 출력의 reason_code 와 priority_reason 이 부록 A 의 대응 표와 일치한다.",
+   "preconditions": [
+    "이터레이션 2~3 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "inputs": {
+    "규칙": "1~8, HOLD"
+   },
+   "procedure": [
+    "규칙마다 단독 조건을 만들어 1주기씩 실행한다"
+   ],
+   "expected": "priority_reason 과 reason_code 가 부록 A 의 대응과 같다",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-084",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-024"
+   ],
+   "purpose": "조회 응답에 좌/우 출력, 상태, 입력별 유효성, 최근 이유코드가 포함된다.",
+   "preconditions": [
+    "이터레이션 4 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 4 이후 실행)",
+   "inputs": {
+    "조회": "1주기 실행 후"
+   },
+   "procedure": [
+    "주기를 실행한 뒤 조회한다"
+   ],
+   "expected": "응답에 네 항목이 모두 있고 값이 마지막 주기 결과와 같다",
+   "techniques": [
+    "동치 분할"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-085",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-030",
+    "REQ-F-038"
+   ],
+   "purpose": "결정 101건을 입력하면 최신 100건만 오래된 순으로 조회된다.",
+   "preconditions": [
+    "이터레이션 4 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 4 이후 실행)",
+   "inputs": {
+    "결정 수": "100, 101"
+   },
+   "procedure": [
+    "결정 100건 후 조회",
+    "1건 더 입력 후 조회"
+   ],
+   "expected": "100건: 처음 100건 순서대로 / 101건: 첫 결정이 빠지고 2~101번째가 순서대로",
+   "techniques": [
+    "경계값 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-086",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-031"
+   ],
+   "purpose": "결정 이력 항목에 허용 필드(이벤트 ID, 시각, 좌/우 출력, 상태, reason_code)만 있다.",
+   "preconditions": [
+    "이터레이션 4 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 4 이후 실행)",
+   "inputs": {
+    "검사": "조회 응답 필드 목록"
+   },
+   "procedure": [
+    "조회 응답의 필드를 열거한다"
+   ],
+   "expected": "허용 필드만 존재",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-087",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-032"
+   ],
+   "purpose": "프로세스를 재기동하면 이력이 남지 않는다.",
+   "preconditions": [
+    "이터레이션 4 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 4 이후 실행)",
+   "inputs": {
+    "재기동": "1회"
+   },
+   "procedure": [
+    "결정을 쌓은 뒤 프로세스를 재시작하고 조회한다"
+   ],
+   "expected": "이력 0건",
+   "techniques": [
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-F-088",
+   "category": "기능",
+   "basis_ids": [
+    "REQ-F-033"
+   ],
+   "purpose": "표시 응답 직렬화 실패(버퍼 부족)는 HTTP 500 으로 응답된다.",
+   "preconditions": [
+    "이터레이션 5 이후 실행"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 5 이후 실행)",
+   "inputs": {
+    "버퍼 용량": "부족하게 설정"
+   },
+   "procedure": [
+    "Web 시뮬레이터 경로에서 조회한다"
+   ],
+   "expected": "HTTP 500",
+   "techniques": [
+    "폴트 주입"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-001",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-S-003",
+    "REQ-F-014"
+   ],
+   "purpose": "입력이 200 ms 를 넘게 갱신되지 않으면 그 시점부터 100 ms 이내(≤ 10 주기)에 DEGRADED 가 된다. 신선한 동안은 ACTIVE 이다.",
+   "preconditions": [
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "source_timestamp_s": "1.0 s 고정",
+    "평가 시각": "1.00 + 0.01 k s (k=0..40)"
+   },
+   "procedure": [
+    "동일 timestamp 로 10 ms 주기 41주기를 실행한다",
+    "처음 DEGRADED 가 된 k 를 구한다"
+   ],
+   "expected": "k ≤ 19 에서 ACTIVE, 처음 DEGRADED 는 k=21 이상 k=30 이하 (나이 > 0.2 s 후 100 ms 이내), 그 이후 계속 DEGRADED",
+   "techniques": [
+    "경계값 분석",
+    "성능 측정"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-002",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-Q-003"
+   ],
+   "purpose": "평가주기 한 번의 평균 처리 시간이 3 ms 미만이다 (호스트, 계측 빌드, 10000주기 평균).",
+   "preconditions": [],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "반복": "10000주기",
+    "입력": "정상"
+   },
+   "procedure": [
+    "10000주기를 실행해 평균 처리 시간을 측정한다"
+   ],
+   "expected": "평균 < 3 ms",
+   "techniques": [
+    "성능 측정"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-003",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-Q-001"
+   ],
+   "purpose": "같은 초기 상태·같은 입력 순서를 고정 시계로 1,000회 재생하면 공개 결과 해시가 모두 같다.",
+   "preconditions": [
+    "이터레이션 4 이후 실행 (해시 정의는 SRS 부록 B)"
+   ],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 4 이후 실행 (해시 정의는 SRS 부록 B))",
+   "inputs": {
+    "재생": "1,000회",
+    "벡터": "정상/오류/stale/FAULT/OFF 혼합"
+   },
+   "procedure": [
+    "벡터를 재생해 공개 결과 해시를 구한다 (1,000회)"
+   ],
+   "expected": "1,000개의 해시가 모두 같다",
+   "techniques": [
+    "WoW 검증"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-004",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-Q-002",
+    "REQ-Q-004"
+   ],
+   "purpose": "원시 입력 형식에 영상·음성·식별자 필드가 없고 성인 존재는 불리언 하나뿐이다.",
+   "preconditions": [],
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
+   "inputs": {
+    "검사": "ecl_raw_snapshot_t 구조 크기와 필드"
+   },
+   "procedure": [
+    "구조 크기를 허용 필드(수치 2개, 정수 코드 11개) 합과 비교한다",
+    "adult_present 가 정수 코드 불리언 필드임을 확인한다"
+   ],
+   "expected": "크기가 같고 adult_present 는 0/1 만 유효",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-005",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-L-001"
+   ],
+   "purpose": "SW 소스에 래치/구동기/CAN·LIN 드라이버 코드가 없고 출력은 논리 값(LOCK/RELEASE)뿐임을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "src/, include/ 파일 목록과 공개 출력 형식 검사"
+   },
+   "procedure": [
+    "src/, include/ 파일 목록과 공개 출력 형식 검사"
+   ],
+   "expected": "하드웨어 접근 코드 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-006",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-L-002"
+   ],
+   "purpose": "출력 적용 feedback 입력이 인터페이스에 없음을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "ecl_raw_snapshot_t 필드 검사"
+   },
+   "procedure": [
+    "ecl_raw_snapshot_t 필드 검사"
+   ],
+   "expected": "feedback 필드 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-007",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-L-003"
+   ],
+   "purpose": "센서 진단·영상 처리·HMI 코드가 범위에 없음을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "src/ 파일 목록 검사"
+   },
+   "procedure": [
+    "src/ 파일 목록 검사"
+   ],
+   "expected": "해당 코드 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-008",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-L-004"
+   ],
+   "purpose": "산출물이 인증·법규 적합성을 주장하지 않음을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "docs/ 와 PR 설명의 적합성 문구 검색"
+   },
+   "procedure": [
+    "docs/ 와 PR 설명의 적합성 문구 검색"
+   ],
+   "expected": "적합성·인증 주장 문구 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-009",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-001"
+   ],
+   "purpose": "제품 코드가 C17 로 Clang 18 이상으로 컴파일됨을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "CI 빌드 로그와 compile_commands.json 의 -std 옵션"
+   },
+   "procedure": [
+    "CI 빌드 로그와 compile_commands.json 의 -std 옵션"
+   ],
+   "expected": "제품 .c 컴파일 옵션에 -std=c17, Clang 버전 ≥ 18",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-010",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-002"
+   ],
+   "purpose": "PC/SIL 호스트 빌드가 빌드 이미지에서 실행됨을 검사한다 (CR-001 OEM 승인 별도).",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "ecl_sil 을 빌드 이미지에서 실행"
+   },
+   "procedure": [
+    "ecl_sil 을 빌드 이미지에서 실행"
+   ],
+   "expected": "실행 성공",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-011",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-003"
+   ],
+   "purpose": "Web 시뮬레이터가 C 코어 결과를 표시만 하고 판단은 C 코어만 함을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "Web 시뮬레이터 소스에 규칙 판단 코드가 없는지 검사"
+   },
+   "procedure": [
+    "Web 시뮬레이터 소스에 규칙 판단 코드가 없는지 검사"
+   ],
+   "expected": "판단 로직 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-012",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-004"
+   ],
+   "purpose": "산출물에 HARA/ASIL 결정 근거 재구성이 없음을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "docs/safety 검사"
+   },
+   "procedure": [
+    "docs/safety 검사"
+   ],
+   "expected": "ASIL 은 OEM 입력으로만 기재",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-013",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-005"
+   ],
+   "purpose": "CLAUDE.md 2절 품질 기준이 CI 에서 충족됨을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "ci/scripts/run-all.sh 결과"
+   },
+   "procedure": [
+    "ci/scripts/run-all.sh 결과"
+   ],
+   "expected": "모든 단계 통과",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  },
+  {
+   "id": "ST-NF-014",
+   "category": "비기능",
+   "basis_ids": [
+    "REQ-C-006"
+   ],
+   "purpose": "ISO 26262-6 준수·적합 주장이 없음을 검사한다.",
+   "preconditions": [],
+   "environment": "검사(inspection): 저장소·CI 산출물 | 실행 상태: 검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)",
+   "inputs": {
+    "검사 대상": "docs/ 문구 검색"
+   },
+   "procedure": [
+    "docs/ 문구 검색"
+   ],
+   "expected": "준수·적합 주장 없음",
+   "techniques": [
+    "요구사항 분석"
+   ],
+   "proposed": false
+  }
+ ],
+ "pict_models": [
+  {
+   "id": "PW-01",
+   "basis_ids": [
+    "REQ-F-012",
+    "REQ-F-020"
+   ],
+   "command": "pict pict_PW-01.txt /o:2",
+   "model_text": "# PW-01: 규칙 우선순위 상호작용 (REQ-F-012, REQ-F-020). 이전 확정 출력은 좌 LOCK, 우 RELEASE 로 고정한다.\nsensor_fault: 0, 1\ncrash_status: NONE, PENDING, CONFIRMED\napproach_left: 0, 1\nemergency: none, fire, adult\nignition_on: 1, 0\nisofix_left: 0, 1\nspeed_kph: 0, 10\ncommand: none, left_unlock\n\n# 물리적/입력 제약: 점화가 꺼져 있으면 차속은 0\nIF [ignition_on] = 0 THEN [speed_kph] = 0;\n# 운전자 명령은 정지 상태에서만 적용 대상이므로 이동 중 명령 조합은 별도 TC(REQ-F-035)에서 다룬다\nIF [command] = \"left_unlock\" THEN [speed_kph] = 0;\n",
+   "rows": [
+    {
+     "sensor_fault": "0",
+     "crash_status": "PENDING",
+     "approach_left": "1",
+     "emergency": "none",
+     "ignition_on": "1",
+     "isofix_left": "1",
+     "speed_kph": "0",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "1",
+     "crash_status": "NONE",
+     "approach_left": "0",
+     "emergency": "adult",
+     "ignition_on": "0",
+     "isofix_left": "0",
+     "speed_kph": "0",
+     "command": "left_unlock"
+    },
+    {
+     "sensor_fault": "0",
+     "crash_status": "PENDING",
+     "approach_left": "0",
+     "emergency": "adult",
+     "ignition_on": "1",
+     "isofix_left": "0",
+     "speed_kph": "10",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "0",
+     "crash_status": "CONFIRMED",
+     "approach_left": "1",
+     "emergency": "fire",
+     "ignition_on": "0",
+     "isofix_left": "1",
+     "speed_kph": "0",
+     "command": "left_unlock"
+    },
+    {
+     "sensor_fault": "1",
+     "crash_status": "NONE",
+     "approach_left": "1",
+     "emergency": "fire",
+     "ignition_on": "1",
+     "isofix_left": "1",
+     "speed_kph": "10",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "1",
+     "crash_status": "PENDING",
+     "approach_left": "0",
+     "emergency": "fire",
+     "ignition_on": "0",
+     "isofix_left": "0",
+     "speed_kph": "0",
+     "command": "left_unlock"
+    },
+    {
+     "sensor_fault": "1",
+     "crash_status": "CONFIRMED",
+     "approach_left": "1",
+     "emergency": "adult",
+     "ignition_on": "1",
+     "isofix_left": "0",
+     "speed_kph": "10",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "1",
+     "crash_status": "CONFIRMED",
+     "approach_left": "0",
+     "emergency": "none",
+     "ignition_on": "1",
+     "isofix_left": "1",
+     "speed_kph": "0",
+     "command": "left_unlock"
+    },
+    {
+     "sensor_fault": "0",
+     "crash_status": "NONE",
+     "approach_left": "1",
+     "emergency": "adult",
+     "ignition_on": "0",
+     "isofix_left": "1",
+     "speed_kph": "0",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "0",
+     "crash_status": "NONE",
+     "approach_left": "1",
+     "emergency": "none",
+     "ignition_on": "1",
+     "isofix_left": "0",
+     "speed_kph": "10",
+     "command": "none"
+    },
+    {
+     "sensor_fault": "0",
+     "crash_status": "PENDING",
+     "approach_left": "0",
+     "emergency": "none",
+     "ignition_on": "0",
+     "isofix_left": "1",
+     "speed_kph": "0",
+     "command": "left_unlock"
+    }
+   ],
+   "notes": "이전 확정 출력은 좌 LOCK, 우 RELEASE 로 고정. 기대 출력은 SRS 1.3절 규칙표에서 계산(gen_system_tests.py expected_for)."
+  }
+ ],
+ "assumptions": [
+  {
+   "id": "A-ST-01",
+   "type": "가정",
+   "related_basis": [
+    "REQ-S-003"
+   ],
+   "content": "평가 시각과 timestamp 의 비교는 초 단위 부동소수이며, 경계 k=20(나이 0.2 s)은 부동소수 오차 때문에 시험 판정에서 제외한다. 정확한 경계는 단위 시험 UT-input-011/012 가 이진 정확값으로 검증한다.",
+   "impact": "ST-NF-001"
+  },
+  {
+   "id": "A-ST-02",
+   "type": "질의",
+   "related_basis": [
+    "REQ-F-023",
+    "REQ-S-002"
+   ],
+   "content": "OQ-02(override 와 ASIL B 억제 상충)는 OEM 확인 전이며 override TC 의 기대값은 잠정이다.",
+   "impact": "override 관련 TC"
+  },
+  {
+   "id": "A-ST-03",
+   "type": "질의",
+   "related_basis": [
+    "REQ-S-001",
+    "REQ-S-004"
+   ],
+   "content": "OQ-01(sensor_fault 와 충돌 동시 발생)은 OEM 확인 전이며 PICT 기대값은 SRS 규칙표(sensor_fault 우선)를 따른다.",
+   "impact": "PW-01 조합 중 sensor_fault=1 이면서 crash=CONFIRMED"
+  }
+ ]
+}

@@ -18,7 +18,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 | 컨테이너 셸 | `bash docker/run.sh` |
 | 전체 품질 검사 | `bash docker/run.sh ci/scripts/run-all.sh` |
 | 파이프라인 자체 점검(참조 프로젝트) | `bash docker/run.sh ci/scripts/smoke.sh` |
-| 단계별 | `ci/scripts/{build,check-cppcheck,check-lizard,check-comments,check-doxygen,check-req-coverage}.sh`, `ci/scripts/run-tests.sh <tdd\|unit\|integration>` |
+| 단계별 | `ci/scripts/{build,check-cppcheck,check-lizard,check-comments,check-doxygen,check-req-coverage}.sh`, `ci/scripts/run-tests.sh <tdd\|unit\|integration\|system>` |
 | Jenkins 시작 | `docker compose -f ci/jenkins/docker-compose.yml --env-file ci/jenkins/.env up -d --build` |
 
 ## 구조

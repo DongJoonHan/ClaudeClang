@@ -35,6 +35,7 @@ run_stage "Doxygen" "$CC_SCRIPTS/check-doxygen.sh"
 run_stage "TDD 시험(보고)" "$CC_SCRIPTS/run-tests.sh" tdd
 run_stage "단위 시험(MC/DC)" "$CC_SCRIPTS/run-tests.sh" unit
 run_stage "통합 시험(함수)" "$CC_SCRIPTS/run-tests.sh" integration
+run_stage "시스템 시험(성공률)" "$CC_SCRIPTS/run-tests.sh" system
 run_stage "시스템(요구사항)" "$CC_SCRIPTS/check-req-coverage.sh"
 
 echo

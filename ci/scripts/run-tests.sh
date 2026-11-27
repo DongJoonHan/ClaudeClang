@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # 시험 스위트 하나를 실행하고 결과·커버리지를 평가한다.
 #
-# 사용법: run-tests.sh <tdd|unit|integration>
+# 사용법: run-tests.sh <tdd|unit|integration|system>
 #
 # 합격 기준 (CLAUDE.md 2.1절)
 #   unit        테스트 성공률 100% + MC/DC 커버리지 100%
 #   integration 테스트 성공률 100% + 함수 커버리지 100%
+#   system      테스트 성공률 100% (커버리지 기준 없음: 요구사항 커버리지는 check-req-coverage.sh)
 #   tdd         측정·보고만 한다 (합격 기준 없음, 단 시험 실패는 실패로 본다)
 #
 # 출력: $BUILD_DIR/reports/<suite>/{junit.xml, summary.json, lcov.info, coverage.txt, html/}
@@ -15,9 +16,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 suite="${1:-}"
 case "$suite" in
     tdd) required=() ; mandatory=0 ;;
+    system) required=() ; mandatory=0 ;;
     unit) required=(--require mcdc=100) ; mandatory=1 ;;
     integration) required=(--require functions=100) ; mandatory=1 ;;
-    *) echo "사용법: $0 <tdd|unit|integration>" >&2 ; exit 2 ;;
+    *) echo "사용법: $0 <tdd|unit|integration|system>" >&2 ; exit 2 ;;
 esac
 
 bin="$BUILD_DIR/test/$suite/${suite}_tests"
