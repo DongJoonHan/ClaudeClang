@@ -68,12 +68,16 @@ def nfid():
 
 
 LOCK_L = ["ctl.confirmed.left = ECL_OUT_LOCK;"]   # 이전 확정 출력: 좌 LOCK, 우 RELEASE
-PRE_PRIOR = ["이전 확정 출력: 좌 LOCK, 우 RELEASE", "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"]
+PRE_PRIOR = ["이전 확정 출력: 좌 LOCK, 우 RELEASE", "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"]
 HELD = ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);"]
 
 
 def step(setup=None, eval_=1.01, cmds=None):
     return dict(setup=setup or [], eval=eval_, cmds=cmds or [])
+
+
+UNLOCK_LEFT = "Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)"
+LOCKS_BOTH = ["ctl.confirmed.left = ECL_OUT_LOCK;", "ctl.confirmed.right = ECL_OUT_LOCK;"]
 
 
 def simple(prior, setup, expect, eval_=1.01, cmds=None):
@@ -87,7 +91,7 @@ DEG = ["EXPECT_EQ(out.state, ECL_STATE_DEGRADED);", "EXPECT_EQ(out.warnings, ECL
 # ------------------------------------------------------------------ 입력 검증 (REQ-F-001~005, REQ-S-008)
 tc(fid(), ["REQ-F-001", "REQ-F-002", "REQ-F-004", "REQ-F-005", "REQ-F-016", "REQ-F-011"],
    "정상 입력(유효 클래스 대표값)이 ACTIVE 로 처리되고 이전 확정 출력이 유지됨을 확인한다.",
-   {"vehicle_speed_kph": "10.0", "gear": "D", "crash_status": "NONE", "불리언 9종": "ignition_on=TRUE, 나머지 FALSE", "timestamp": "1.0 s, 평가 시각 1.01 s"},
+   {"vehicle_speed_kph": "0.0", "gear": "D", "crash_status": "NONE", "불리언 9종": "ignition_on=TRUE, 나머지 FALSE", "timestamp": "1.0 s, 평가 시각 1.01 s"},
    ["이전 확정 출력을 좌 LOCK, 우 RELEASE 로 만든다", "정상 입력으로 1주기를 실행한다", "상태와 출력을 관측한다"],
    "상태 ACTIVE, 경고 없음, 좌 LOCK, 우 RELEASE (규칙 없음 → HOLD, 이유 NONE)", ["동치 분할"], PRE_PRIOR,
    exec_=simple(LOCK_L, [], ["EXPECT_EQ(out.state, ECL_STATE_ACTIVE);", "EXPECT_EQ(out.warnings, 0U);",
@@ -154,10 +158,14 @@ tc(fid(), ["REQ-F-009", "REQ-F-007"], "한 평가주기에 유효한 명령 2건
    exec_=simple(LOCK_L, [], ["EXPECT_EQ(out.decision.command_note, ECL_REASON_CMD_REJECTED_EXTRA);"],
                 cmds=["Cmd(ECL_SIDE_LEFT, ECL_ACTION_LOCK, ECL_SRC_PHYSICAL_BUTTON)", "Cmd(ECL_SIDE_RIGHT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)"]))
 tc(fid(), ["REQ-F-008", "REQ-F-023"], "운전자 명령의 요청 시각이 입력 묶음의 source_timestamp_s 임을 override 10초 경계로 확인한다 (평가 시각이 달라도 timestamp 기준).",
-   {"접근위험": "TRUE(좌)", "해제 명령 1": "timestamp 100.0 s, 평가 시각 100.0 s", "해제 명령 2": "timestamp 109.9 s, 평가 시각 130.0 s(지연 평가)"},
-   ["좌 접근위험 TRUE 로 첫 해제 명령을 보낸다 (억제됨)", "timestamp 109.9, 평가 시각 130.0 으로 같은 해제 명령을 다시 보낸다"],
-   "두 번째 명령이 override 로 처리된다 (timestamp 차 9.9 s ≤ 10 s). 평가 시각 차(30 s)를 쓰면 override 되지 않으므로 구분된다.",
-   ["경계값 분석", "WoW 검증"], ["이터레이션 3 이후 실행"])
+   {"접근위험": "TRUE(좌)", "해제 명령 1": "timestamp 100.0 s, 평가 시각 100.0 s", "해제 명령 2": "timestamp 109.95 s, 평가 시각 110.1 s (timestamp 보다 0.15 s 늦음, 신선함)"},
+   ["좌 접근위험 TRUE 로 첫 해제 명령을 보낸다 (억제됨)", "timestamp 109.95, 평가 시각 110.1 로 같은 해제 명령을 다시 보낸다"],
+   "두 번째 명령이 override 로 처리된다 (timestamp 차 9.95 s ≤ 10 s). 평가 시각 차(10.1 s)를 쓰면 override 되지 않으므로 구분된다. 좌 RELEASE, reason OVERRIDE.",
+   ["경계값 분석", "WoW 검증"], ["이전 확정 출력: 좌/우 LOCK"], it_=3,
+   exec_=dict(prior=["ctl.confirmed.left = ECL_OUT_LOCK;", "ctl.confirmed.right = ECL_OUT_LOCK;"],
+              steps=[step(["raw.timestamp_s = Num(100.0);", "raw.rear_left_risk = Int(1);"], 100.0, [UNLOCK_LEFT]),
+                     step(["raw.timestamp_s = Num(109.95);", "raw.rear_left_risk = Int(1);"], 110.1, [UNLOCK_LEFT])],
+              expect=["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);"]))
 
 # ------------------------------------------------------------------ 상태 (REQ-F-014, REQ-S-003/004/009)
 tc(fid(), ["REQ-F-014", "REQ-S-004", "REQ-S-009", "REQ-F-010", "REQ-F-011"], "sensor_fault 가 유효한 TRUE 이면 첫 주기에 FAULT, 경고, 출력 유지, 규칙 1 이 적용된다.",
@@ -289,10 +297,17 @@ tc(fid(), ["REQ-F-012", "REQ-F-020", "REQ-S-001", "REQ-S-002", "REQ-S-004"], "�
                       "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);"],
               extra=[("after_step_0", ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);"]),
                      ("after_step_1", ["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);"])]))
-tc(fid(), ["REQ-S-002"], "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.", {"주기 1": "좌 접근위험 TRUE", "주기 2": "접근위험 FALSE + 좌 해제 명령"},
-   ["두 주기를 실행한다"], "주기 1 좌 LOCK, 주기 2 좌 RELEASE (규칙 8)", ["상태 전이"], ["이터레이션 3 이후 실행"])
+tc(fid(), ["REQ-S-002"], "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.", {"주기 1": "좌 접근위험 TRUE + 좌 해제 명령", "주기 2": "접근위험 FALSE + 좌 해제 명령"},
+   ["두 주기를 실행한다"], "주기 1 좌 LOCK(억제), 주기 2 좌 RELEASE (규칙 8, reason DRIVER_CMD)", ["상태 전이"], ["이전 확정 출력: 좌 LOCK"], it_=3,
+   exec_=dict(prior=["ctl.confirmed.left = ECL_OUT_LOCK;"],
+              steps=[step(["raw.rear_left_risk = Int(1);"], 1.01, [UNLOCK_LEFT]), step([], 1.02, [UNLOCK_LEFT])],
+              expect=["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_DRIVER_CMD);"],
+              extra=[("after_step_0", ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);"])]))
 tc(fid(), ["REQ-F-029", "REQ-F-022"], "충돌 PENDING 이 규칙 7(이동 시작 자동 잠금)을 막지 않는다.", {"crash_status": "PENDING", "vehicle_speed_kph": "3.0"},
-   ["PENDING + 속도 3.0 km/h 로 1주기를 실행한다"], "좌/우 LOCK (규칙 7), PENDING 은 영향 없음", ["WoW 검증"], ["이터레이션 3 이후 실행"])
+   ["PENDING + 속도 3.0 km/h 로 1주기를 실행한다"], "좌/우 LOCK (규칙 7), PENDING 은 영향 없음", ["WoW 검증"], ["이전 확정 출력: 좌/우 RELEASE"], it_=3,
+   exec_=simple([], ["raw.crash_status = Int(1);", "raw.speed_kph = Num(3.0);"],
+                ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);",
+                 "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_AUTO_LOCK);"]))
 
 PICT = json.loads((REPO / "docs/test/system/pict_PW-01.json").read_text(encoding="utf-8"))
 
@@ -345,31 +360,129 @@ def expected_for(row):
     return left, right, prio
 
 
+CRASH_CODE = {"NONE": 0, "PENDING": 1, "CONFIRMED": 2}
 pict_ids = []
 for n, row in enumerate(PICT["rows"], start=1):
     left, right, prio = expected_for(row)
     tid = fid()
     pict_ids.append(tid)
+    setup = []
+    if row["sensor_fault"] == "1":
+        setup.append("raw.sensor_fault = Int(1);")
+    setup.append(f"raw.crash_status = Int({CRASH_CODE[row['crash_status']]});")
+    if row["approach_left"] == "1":
+        setup.append("raw.rear_left_risk = Int(1);")
+    if row["emergency"] == "fire":
+        setup.append("raw.fire = Int(1);")
+    elif row["emergency"] == "adult":
+        setup.append("raw.adult_present = Int(1);")
+    if row["ignition_on"] == "0":
+        setup.append("raw.ignition_on = Int(0);")
+    if row["isofix_left"] == "1":
+        setup.append("raw.isofix_left = Int(1);")
+    setup.append(f"raw.speed_kph = Num({float(row['speed_kph'])});")
+    cmds = [UNLOCK_LEFT] if row["command"] == "left_unlock" else []
+    expect = [f"EXPECT_EQ(out.decision.left, ECL_OUT_{left});", f"EXPECT_EQ(out.decision.right, ECL_OUT_{right});",
+              f"EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_{prio});"]
     tc(tid, ["REQ-F-012", "REQ-F-020"], f"PICT 조합 #{n}: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
        {k: v for k, v in row.items()}, ["이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다", "입력 조합으로 1주기를 실행한다", "출력과 priority_reason 을 관측한다"],
-       f"좌 {left}, 우 {right}, priority_reason {prio} (SRS 1.3절 규칙표에서 계산)", ["페어와이즈(PICT)"], ["이터레이션 2~3 이후 실행"], pict="PW-01")
+       f"좌 {left}, 우 {right}, priority_reason {prio} (SRS 1.3절 규칙표에서 계산)", ["페어와이즈(PICT)"], PRE_PRIOR, pict="PW-01", it_=3,
+       exec_=simple(LOCK_L, setup, expect, cmds=cmds))
 
 # ------------------------------------------------------------------ 이터레이션 3 규칙 (REQ-F-021~027, 034~037)
-tc(fid(), ["REQ-F-021", "REQ-F-034"], "정지 상태에서 네 입력 경로(source)와 side 3종이 선택한 도어에만 동작을 적용한다.", {"source": "physical_button, avn, voice, mobile_app", "side": "left, right, all", "action": "lock, unlock"},
-   ["정지·정상 입력에서 조합마다 명령을 보낸다"], "side 가 가리키는 도어에만 action 적용, 네 source 의 결과가 같다", ["동치 분할"], ["이터레이션 3 이후 실행"])
+tc(fid(), ["REQ-F-021", "REQ-F-034"], "정지 상태에서 네 입력 경로(source)와 side 3종, action 2종이 선택한 도어에만 동작을 적용한다.",
+   {"source": "physical_button, avn, voice, mobile_app", "side": "left, right, all", "action": "lock, unlock"},
+   ["정지·정상 입력에서 조합마다 명령을 보낸다"], "side 가 가리키는 도어에만 action 적용, 반대쪽은 이전 출력 유지, 네 source 의 결과가 같다", ["동치 분할"], ["이전 확정 출력: action 의 반대 값"], it_=3,
+   exec_=dict(body="""for (int side = 0; side <= 2; ++side)
+{
+    for (int action = 0; action <= 1; ++action)
+    {
+        for (int source = 0; source <= 3; ++source)
+        {
+            ecl_controller_t ctl{};
+            ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+            const ecl_output_t wanted = (action == ECL_ACTION_LOCK) ? ECL_OUT_LOCK : ECL_OUT_RELEASE;
+            const ecl_output_t other = (action == ECL_ACTION_LOCK) ? ECL_OUT_RELEASE : ECL_OUT_LOCK;
+            ctl.confirmed.left = other;
+            ctl.confirmed.right = other;
+            const ecl_raw_snapshot_t raw = ValidRaw();
+            const ecl_raw_command_t cmd = Cmd(side, action, source);
+            ecl_cycle_result_t out{};
+            ASSERT_EQ(ecl_controller_step(&ctl, &raw, &cmd, 1, 1.01, &out), ECL_OK);
+            EXPECT_EQ(out.decision.left, (side == ECL_SIDE_RIGHT) ? other : wanted) << side << action << source;
+            EXPECT_EQ(out.decision.right, (side == ECL_SIDE_LEFT) ? other : wanted) << side << action << source;
+        }
+    }
+}"""))
 tc(fid(), ["REQ-F-035"], "이동 중(속도 3.0 이상) 유효한 명령은 적용되지 않고 CMD_REJECTED_MOVING 으로 기록된다.", {"속도": "3.0 km/h", "명령": "좌 해제"},
-   ["명령과 함께 1주기"], "좌 LOCK(규칙 7), command_note CMD_REJECTED_MOVING", ["경계값 분석"], ["이터레이션 3 이후 실행"])
-for sp, exp, lab in ((2.9, "자동 잠금 아님(HOLD)", "직전"), (3.0, "좌/우 LOCK (규칙 7, 이유 AUTO_LOCK_MOVING)", "경계"), (3.1, "좌/우 LOCK", "직후")):
-    tc(fid(), ["REQ-F-022"], f"속도 {sp} km/h ({lab}) 에서 자동 잠금 판정.", {"vehicle_speed_kph": str(sp)}, ["이전 출력 RELEASE 에서 1주기"], exp, ["경계값 분석"], ["이터레이션 3 이후 실행"])
-for dt, exp in ((10.0, "override"), (10.1, "override 아님(첫 억제와 동일하게 LOCK 유지)")):
-    tc(fid(), ["REQ-F-023", "REQ-F-036"], f"첫 억제 후 {dt} s 에 같은 해제 재입력.", {"간격": f"{dt} s"}, ["접근위험 TRUE 에서 해제 명령", f"{dt} s 후 같은 해제 명령"], exp + ", override 면 좌 RELEASE 와 reason OVERRIDE", ["경계값 분석"], ["이터레이션 3 이후 실행"])
-for sig, reason in (("fire_detected", "FIRE"), ("overtemperature_detected", "OVERTEMP"), ("adult_present", "ADULT_PRESENT")):
-    tc(fid(), ["REQ-F-025"], f"{sig} 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.", {sig: "TRUE"}, ["이전 좌/우 LOCK 에서 신호 주입 후 1주기"], f"좌/우 RELEASE, reason {reason}", ["동치 분할"], ["이터레이션 3 이후 실행"])
-for lab, left, right in (("isofix_left 만", "LOCK", "RELEASE"), ("isofix_right 만", "RELEASE", "LOCK")):
-    tc(fid(), ["REQ-F-026", "REQ-F-017"], f"{lab} TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.", {"입력": lab}, ["이전 좌/우 RELEASE 에서 1주기"], f"좌 {left}, 우 {right}", ["동치 분할"], ["이터레이션 3 이후 실행"])
-tc(fid(), ["REQ-F-027"], "ignition_on 이 FALSE 로 바뀐 첫 주기에 좌/우 RELEASE, 상태 OFF, 이유 IGNITION_OFF.", {"ignition_on": "TRUE→FALSE"}, ["이전 좌/우 LOCK 에서 1주기"], "좌/우 RELEASE, OFF, reason IGNITION_OFF", ["상태 전이"], ["이터레이션 3 이후 실행"])
+   ["명령과 함께 1주기"], "좌 LOCK(규칙 7), command_note CMD_REJECTED_MOVING", ["경계값 분석"], ["이전 확정 출력: 좌/우 RELEASE"], it_=3,
+   exec_=simple([], ["raw.speed_kph = Num(3.0);"], ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.command_note, ECL_REASON_CMD_REJECTED_MOVING);"], cmds=[UNLOCK_LEFT]))
+for sp, exp, lab in ((2.9, "자동 잠금 아님(HOLD, 좌/우 RELEASE 유지)", "직전"), (3.0, "좌/우 LOCK (규칙 7, 이유 AUTO_LOCK_MOVING)", "경계"), (3.1, "좌/우 LOCK", "직후")):
+    locked = sp >= 3.0
+    expect = (["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_AUTO_LOCK_MOVING);"]
+              if locked else ["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_HOLD);"])
+    tc(fid(), ["REQ-F-022"], f"속도 {sp} km/h ({lab}) 에서 자동 잠금 판정.", {"vehicle_speed_kph": str(sp)}, ["이전 출력 RELEASE 에서 1주기"], exp, ["경계값 분석"], ["이전 확정 출력: 좌/우 RELEASE"], it_=3,
+       exec_=simple([], [f"raw.speed_kph = Num({sp});"], expect))
+for dt, ts, exp_override in ((10.0, 110.0, True), (10.1, 110.1, False)):
+    expect = (["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);"] if exp_override
+              else ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);"])
+    tc(fid(), ["REQ-F-023", "REQ-F-036"], f"첫 억제 후 {dt} s 에 같은 해제 재입력.", {"간격": f"{dt} s"}, ["접근위험 TRUE 에서 해제 명령", f"{dt} s 후 같은 해제 명령"],
+       ("override: 좌 RELEASE, reason OVERRIDE" if exp_override else "override 아님: 새 첫 억제로 보아 좌 LOCK 유지, reason APPROACH_RISK_HOLD"), ["경계값 분석"], ["이전 확정 출력: 좌 LOCK"], it_=3,
+       exec_=dict(prior=["ctl.confirmed.left = ECL_OUT_LOCK;"],
+                  steps=[step(["raw.timestamp_s = Num(100.0);", "raw.rear_left_risk = Int(1);"], 100.0, [UNLOCK_LEFT]),
+                         step([f"raw.timestamp_s = Num({ts});", "raw.rear_left_risk = Int(1);"], ts, [UNLOCK_LEFT])],
+                  expect=expect))
+for sig, member, reason in (("fire_detected", "fire", "FIRE"), ("overtemperature_detected", "overtemp", "OVERTEMP"), ("adult_present", "adult_present", "ADULT_PRESENT")):
+    tc(fid(), ["REQ-F-025"], f"{sig} 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.", {sig: "TRUE"}, ["이전 좌/우 LOCK 에서 신호 주입 후 1주기"], f"좌/우 RELEASE, reason {reason}", ["동치 분할"], ["이전 확정 출력: 좌/우 LOCK"], it_=3,
+       exec_=simple(LOCKS_BOTH, [f"raw.{member} = Int(1);"], ["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);",
+                                                            f"EXPECT_EQ(out.decision.reason_code, ECL_REASON_{reason});"]))
+for lab, member, left, right in (("isofix_left 만", "isofix_left", "LOCK", "RELEASE"), ("isofix_right 만", "isofix_right", "RELEASE", "LOCK")):
+    tc(fid(), ["REQ-F-026", "REQ-F-017"], f"{lab} TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.", {"입력": lab}, ["이전 좌/우 RELEASE 에서 1주기"], f"좌 {left}, 우 {right}", ["동치 분할"], ["이전 확정 출력: 좌/우 RELEASE"], it_=3,
+       exec_=simple([], [f"raw.{member} = Int(1);"], [f"EXPECT_EQ(out.decision.left, ECL_OUT_{left});", f"EXPECT_EQ(out.decision.right, ECL_OUT_{right});"]))
+tc(fid(), ["REQ-F-027"], "ignition_on 이 FALSE 로 바뀐 첫 주기에 좌/우 RELEASE, 상태 OFF, 이유 IGNITION_OFF.", {"ignition_on": "TRUE→FALSE"}, ["이전 좌/우 LOCK 에서 1주기"], "좌/우 RELEASE, OFF, reason IGNITION_OFF", ["상태 전이"], ["이전 확정 출력: 좌/우 LOCK"], it_=3,
+   exec_=simple(LOCKS_BOTH, ["raw.ignition_on = Int(0);"], ["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);",
+                                                           "EXPECT_EQ(out.state, ECL_STATE_OFF);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_IGNITION_OFF);"]))
+RULE_CASES = [
+    ("규칙 1", ["raw.sensor_fault = Int(1);"], [], "SENSOR_FAULT", "SENSOR_FAULT"),
+    ("규칙 2", ["raw.crash_status = Int(2);"], [], "CRASH", "CRASH_CONFIRMED"),
+    ("규칙 3", ["raw.rear_left_risk = Int(1);"], [], "APPROACH", "APPROACH_RISK_HOLD"),
+    ("규칙 4", ["raw.fire = Int(1);"], [], "EMERGENCY_RELEASE", "FIRE"),
+    ("규칙 5", ["raw.ignition_on = Int(0);"], [], "IGNITION_OFF", "IGNITION_OFF"),
+    ("규칙 6", ["raw.isofix_right = Int(1);"], [], "ISOFIX", "ISOFIX_RIGHT"),
+    ("규칙 7", ["raw.speed_kph = Num(5.0);"], [], "AUTO_LOCK", "AUTO_LOCK_MOVING"),
+    ("규칙 8", [], [UNLOCK_LEFT], "DRIVER_CMD", "DRIVER_CMD"),
+    ("HOLD", ["raw.crash_status = Int(1);"], [], "HOLD", "CRASH_PENDING"),
+    ("HOLD(NONE)", [], [], "HOLD", "NONE"),
+]
+rows_cpp = []
+for name, setup, cmds, prio, reason in RULE_CASES:
+    lam = "[](ecl_raw_snapshot_t& raw) { " + " ".join(x for x in setup) + " }" if setup else "[](ecl_raw_snapshot_t& raw) { static_cast<void>(raw); }"
+    rows_cpp.append(f'    {{"{name}", {lam}, {"true" if cmds else "false"}, ECL_PRIO_{prio}, ECL_REASON_{reason}}},')
+rule_body = ["""struct Scenario
+{
+    const char* name;
+    void (*setup)(ecl_raw_snapshot_t&);
+    bool command;
+    ecl_priority_t priority;
+    ecl_reason_t reason;
+};
+const Scenario scenarios[] = {
+""" + "\n".join(rows_cpp) + """
+};
+for (const Scenario& sc : scenarios)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_raw_snapshot_t raw = ValidRaw();
+    sc.setup(raw);
+    const ecl_raw_command_t cmd = Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN);
+    ecl_cycle_result_t out{};
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, sc.command ? &cmd : nullptr, sc.command ? 1U : 0U, 1.01, &out), ECL_OK);
+    EXPECT_EQ(out.decision.priority_reason, sc.priority) << sc.name;
+    EXPECT_EQ(out.decision.reason_code, sc.reason) << sc.name;
+}"""]
 tc(fid(), ["REQ-F-028", "REQ-F-037"], "각 규칙이 결정한 출력의 reason_code 와 priority_reason 이 부록 A 의 대응 표와 일치한다.", {"규칙": "1~8, HOLD"}, ["규칙마다 단독 조건을 만들어 1주기씩 실행한다"],
-   "priority_reason 과 reason_code 가 부록 A 의 대응과 같다", ["동치 분할"], ["이터레이션 2~3 이후 실행"])
+   "priority_reason 과 reason_code 가 부록 A 의 대응과 같다", ["동치 분할"], ["이전 확정 출력: 좌/우 RELEASE"], it_=3, exec_=dict(body="\n".join(rule_body)))
 
 # ------------------------------------------------------------------ 표시/이력 (REQ-F-024, 030~033, Q-001)
 tc(fid(), ["REQ-F-024"], "조회 응답에 좌/우 출력, 상태, 입력별 유효성, 최근 이유코드가 포함된다.", {"조회": "1주기 실행 후"}, ["주기를 실행한 뒤 조회한다"], "응답에 네 항목이 모두 있고 값이 마지막 주기 결과와 같다", ["동치 분할"], ["이터레이션 4 이후 실행"])
