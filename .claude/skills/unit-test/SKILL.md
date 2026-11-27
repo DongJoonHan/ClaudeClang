@@ -1,23 +1,27 @@
 ---
 name: unit-test
-description: A-SPICE(SWE.4) 기준으로 단위 테스트를 설계·작성·실행할 때 사용. 목표 커버리지를 100% 달성할 때까지 의미 있는 테스트 케이스를 반복 추가하고, 경계값 분석·동치 클래스·PICT 조합을 활용하며, MC/DC 목표가 있으면 LLVM 도구(스킬 내 스크립트)로 케이스를 보강한다. "단위 테스트", "커버리지", "MC/DC", "SWE.4" 요청에 사용.
+description: A-SPICE(SWE.4) 기준으로 단위 테스트를 설계·작성·실행할 때 사용. MC/DC 커버리지 100%와 테스트 성공률 100%를 달성할 때까지 의미 있는 테스트 케이스를 반복 추가하고, 경계값 분석·동치 클래스·PICT 조합을 활용하며, LLVM 도구(스킬 내 스크립트)로 MC/DC를 측정해 케이스를 보강한다. GoogleTest/GMock 사용. "단위 테스트", "커버리지", "MC/DC", "SWE.4" 요청에 사용.
 ---
 
 # 단위 테스트 스킬 (A-SPICE SWE.4)
 
 공통 위치와 ID 규칙은 프로젝트 루트 `CLAUDE.md`를 따른다. 테스트의 기준은 **상세 설계**(와 그 인터페이스 정의)다. 코드가 아니라 설계에서 기대값을 도출한다.
 
+프레임워크는 **Google Test / Google Mock**, 언어는 C++(Clang 18+)다. 단위 테스트는 `test/unit/`에 둔다. 구현 단계의 TDD 테스트(`test/tdd/`)와는 **분리**되며, 이 스킬의 커버리지에 TDD 테스트를 합산하지 않는다.
+
 ## 1. 필수 규칙
 
-1. **정해진 커버리지를 100% 달성할 때까지 테스트 케이스를 반복해서 추가한다.**
+1. **MC/DC 커버리지 100%, 테스트 성공률 100%를 달성할 때까지 테스트 케이스를 반복해서 추가한다.**
 2. 필요하면 Stub/Mock을 쓸 수 있으나 **과도하게 의존하지 않는다.**
 3. **커버리지 달성만을 위한 의미 없는 테스트 케이스를 추가하지 않는다.**
 4. **모든 테스트 함수에 Doxygen 스타일 주석으로 테스트 목적, 입력값, 절차, 예상 출력값을 쓴다.**
 5. **경계값 분석, 동치 클래스, PICT 조합을 적극 활용한다.**
-6. **MC/DC 커버리지 목표가 있으면 LLVM 도구로 케이스를 추가한다.** LLVM 도구/스크립트는 이 스킬 안(`scripts/`)에 둔다.
+6. **LLVM 도구로 MC/DC를 측정하고 미충족 조건에 대한 케이스를 추가한다.** LLVM 도구/스크립트는 이 스킬 안(`scripts/`)에 둔다.
 
-### "정해진 커버리지"
-프로젝트의 테스트 계획(또는 `CLAUDE.md`)에 정해진 커버리지 종류와 목표를 따른다. 정해진 것이 없으면 사용자에게 먼저 확인한다. 임시 기본값은 구문(statement) + 분기(branch) 100%이며, 안전 등급이 높은 항목은 MC/DC를 요구받을 수 있다.
+### 합격 기준 (`CLAUDE.md` 2.1절)
+- **MC/DC 커버리지 100%**
+- **테스트 성공률 100%** (실패·건너뜀(`DISABLED_`, `GTEST_SKIP`) 테스트가 없어야 한다)
+- 예외는 없다. 도달할 수 없어 달성이 불가능한 항목은 예외로 두지 않고 코드나 설계를 고친다 (6절).
 
 ## 2. 케이스 도출 방법
 
@@ -52,7 +56,7 @@ IF [mode] = "INIT" THEN [enable] = "false";
 
 ## 4. 테스트 함수 주석 형식 (필수)
 
-```c
+```cpp
 /**
  * @test      UT-sensor_read-003
  * @brief     [목적] out_value가 NULL일 때 오류 상태를 반환하고 출력을 건드리지 않는다.
@@ -61,16 +65,26 @@ IF [mode] = "INIT" THEN [enable] = "false";
  * @input     sensor = 유효한 핸들, out_value = NULL
  * @procedure 1) 유효한 sensor 핸들을 준비한다.
  *            2) out_value = NULL로 sensor_read()를 호출한다.
- * @expected  반환값 == STATUS_ERR_NULL_ARG, 하드웨어 읽기 함수는 호출되지 않음
+ * @expected  반환값 == Status::ErrNullArg, 하드웨어 읽기 함수는 호출되지 않음
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
  */
-static void test_sensor_read_null_out(void)
+TEST(SensorReadTest, ReturnsErrNullArgWhenOutValueIsNull)
 ```
 
 - 위 다섯 항목(목적, 입력값, 절차, 예상 출력값 + 추적 ID)은 하나도 빠지면 안 된다.
+- 시험 코드도 소스 코드이므로 Human-in-the-Loop 태그(`@ai_model`, `@ai_date`, `@requested_by`, `@human_reviewed`, `@reviewed_by`, `@reviewed_date`)를 포함한다. 규칙은 `CLAUDE.md` 2.4절을 따른다 (AI가 `@human_reviewed yes`를 스스로 쓰지 않는다).
 - 테스트 ID(`UT-`)와 설계/요구사항 ID를 연결해 추적 매트릭스에 반영한다.
 - 테스트 함수도 이름이 의도를 드러내야 한다.
 
-## 5. Stub/Mock 지침
+## 5. Stub/Mock 지침 (Google Mock)
+
+대체는 인터페이스(순수 가상 클래스 또는 링크 시점 대체)를 통해 하고, Google Mock(`MOCK_METHOD`)을 사용한다.
 
 - 대상 모듈이 의존하는 **다른 모듈의 인터페이스**만 대체한다. 시험 대상의 내부 함수를 Mock하지 않는다.
 - 하드웨어·OS·시간·난수처럼 단위 시험이 통제할 수 없는 외부 의존에 우선 사용한다.
@@ -85,10 +99,11 @@ repeat:
   2. 커버리지 측정 (7절 스크립트)
   3. 미커버 항목 각각에 대해 판단:
        a) 설계상 도달 가능, 아직 시험 안 한 동작 → 의미 있는 케이스 추가
-       b) 도달 불가 코드(죽은 코드, 방어 코드) → 코드 제거를 설계/리뷰에 제안하거나,
-          불가능 사유를 문서화하고 승인 받는다. 억지 케이스 금지
+       b) 도달 불가 코드(죽은 코드, 방어 코드), 또는 조건이 너무 많아 MC/DC로 측정되지 않는 결정
+          → 코드를 제거하거나 결정을 분해하도록 설계/코드를 수정한다.
+          커버리지 예외는 없다 (CLAUDE.md 2절). 억지 케이스 금지
        c) 설계에 없는 동작 → 설계 결함. 설계부터 수정
-until 목표 커버리지 100% (승인된 예외 제외)
+until MC/DC 100% 그리고 테스트 성공률 100%
 ```
 
 - 100% 미달 상태로 "완료"라고 보고하지 않는다. 남은 항목과 사유를 그대로 보고한다.
@@ -103,14 +118,15 @@ bash .claude/skills/unit-test/scripts/coverage.sh --out build/cov [--mcdc] -- <c
 ```
 
 - LLVM 소스 기반 커버리지(`-fprofile-instr-generate -fcoverage-mapping`)로 라인·영역·분기 커버리지를 측정하고, `llvm-cov`로 리포트와 미커버 위치를 출력한다.
-- `--mcdc` 를 주면 `-fcoverage-mcdc` 로 MC/DC를 측정한다 (LLVM/Clang 18 이상 필요). 조건 수가 많은 결정(기본 6개 초과)은 LLVM 제약으로 측정되지 않을 수 있으니 리포트의 경고를 확인한다.
+- 단위 테스트는 **항상 `--mcdc`로 실행**한다. `-fcoverage-mcdc` 로 MC/DC를 측정한다 (LLVM/Clang 18 이상 필요). 조건 수가 많은 결정(기본 6개 초과)은 LLVM 제약으로 측정되지 않을 수 있으니 리포트의 경고를 확인하고, 해당 결정은 분해한다.
+- 출력 디렉터리는 단위 테스트 `build/cov-unit`을 쓴다. TDD 테스트는 `build/cov-tdd`로 따로 측정하며, 두 결과를 합치지 않는다.
 - 미커버 MC/DC 조건쌍은 `llvm-cov show --show-mcdc` 출력에서 어느 조건이 독립적 영향을 보이지 못했는지 보고, **그 조건만 뒤집는 입력쌍**을 설계에서 도출해 케이스를 추가한다.
 - 스크립트가 지원하지 않는 사항이 생기면 이 스킬의 `scripts/`에 추가·수정한다 (스킬 밖에 흩어진 일회성 명령을 쓰지 않는다).
 - 도구 버전(`clang --version`)을 시험 결과 기록에 남긴다.
 
 ## 8. 산출물
 
-- `test/unit/` 아래 시험 코드 (모듈별 하위 디렉터리, PICT 모델 포함)
+- `test/unit/` 아래 GoogleTest 시험 코드 (모듈별 하위 디렉터리, PICT 모델 포함). TDD 테스트(`test/tdd/`)와 섞지 않는다.
 - `docs/test/unit-test-report.md`: 케이스 목록(ID, 기법, 추적 ID), 실행 결과, 커버리지 결과, 미달/예외 사유, 도구 버전
 - `docs/traceability/trace-matrix.md` 갱신 (설계/요구사항 ↔ UT-)
 - `docs/review/` 리뷰 기록 (`review` 스킬의 단위 테스트 체크리스트)

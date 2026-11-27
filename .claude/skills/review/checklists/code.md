@@ -17,7 +17,12 @@
 | CD-11 | 중복 코드가 없다 | 중복 없음 |
 | CD-12 | 공개 함수에 Doxygen 주석(`@brief`, `@param`, `@return`)과 추적 ID가 있다 | 누락 없음 |
 | CD-13 | 컴파일 경고 0 (`-Wall -Wextra -Werror` 등) | 경고 0 |
-| CD-14 | 정적 분석 결과에 미해결 지적이 없다 | 미해결 0 |
+| CD-14 | **Cppcheck** 지적이 0건이고 억제(`--suppress`, `cppcheck-suppress`, 억제 파일)가 없다 | 지적 0, 억제 0 (Grep으로 확인) |
 | CD-15 | 메모리·자원 소유권과 해제가 설계대로이다 | 누수·이중 해제·미초기화 사용 없음 |
 | CD-16 | 오류 처리가 설계의 오류 체계와 일관된다 | 불일치 없음 |
 | CD-17 | 코드 ↔ 설계 ↔ 요구사항 추적이 가능하다 | 추적 ID 존재, 매트릭스와 일치 |
+| CD-18 | **Lizard**: 모든 함수의 순환복잡도 ≤ 10, 길이 ≤ 80라인 | 위반 0 (도구 실행 결과 첨부) |
+| CD-19 | 파일 헤더와 모든 함수·클래스에 Doxygen 주석이 있고 Human-in-the-Loop 태그 6종이 모두 있다 (`@ai_model`, `@ai_date`, `@requested_by`, `@human_reviewed`, `@reviewed_by`, `@reviewed_date`) | 누락 0 (Grep으로 전수 확인) |
+| CD-20 | `@human_reviewed yes`인 항목은 사용자가 리뷰했다는 근거(이름·일자)가 있고, 리뷰 후 수정된 코드는 `no`로 되돌려져 있다 | AI가 임의로 `yes`로 쓴 흔적 0 |
+| CD-21 | 구현이 TDD로 진행되었고 TDD 테스트가 `test/tdd/`에 단위 테스트와 분리되어 있다 | 분리된 디렉터리·결과·커버리지 존재 |
+| CD-22 | Doxygen이 경고 없이 빌드된다 | 경고 0 |
