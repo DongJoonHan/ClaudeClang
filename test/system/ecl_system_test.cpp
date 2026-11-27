@@ -1727,7 +1727,312 @@ TEST(EclSystemTest, ST_F_051)
 }
 
 /**
+ * @test      ST-F-052
+ * @brief     [목적] 좌/우 출력이 독립적으로 결정됨을 확인한다 (한쪽 규칙이 반대쪽 출력을 바꾸지 않음).
+ * @satisfies REQ-F-017
+ * @technique 동치 분할
+ * @input     {"접근위험(좌)": "TRUE", "이전 확정 출력": "좌 RELEASE, 우 LOCK"}
+ * @procedure 좌만 접근위험 TRUE 로 1주기를 실행한다
+ * @expected  좌 LOCK(규칙 3), 우 LOCK 유지(규칙 없음)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_052)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.rear_left_risk = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+}
+
+/**
  * @test      ST-NF-001
+ * @brief     [목적] 충돌 CONFIRMED 가 유효하면 300 ms 이내(10 ms 주기 30주기 이내)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.
+ * @satisfies REQ-S-001, REQ-S-005
+ * @technique 경계값 분석, 성능 측정
+ * @input     {"crash_status": "CONFIRMED (t0 부터 3 s 유지)", "이전 확정 출력": "좌 LOCK, 우 LOCK"}
+ * @procedure 이전 출력을 좌/우 LOCK 으로 한다 / t0 에 CONFIRMED 를 주입하고 10 ms 주기로 300 주기를 실행한다 / RELEASE 가 된 첫 시각과 이후 출력을 관측한다
+ * @expected  RELEASE 가 t0 부터 300 ms 이내(k ≤ 30)에 되고, 이후 300주기 동안 계속 RELEASE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_NF_001)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    int firstRelease = -1;
+    for (int k = 0; k < 300; ++k)
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        const double now = 1.0 + (k / 100.0);
+        raw.timestamp_s = Num(now);
+        raw.crash_status = Int(ECL_CRASH_CONFIRMED);
+        ecl_cycle_result_t out{};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, now, &out), ECL_OK);
+        const bool released = (out.decision.left == ECL_OUT_RELEASE) && (out.decision.right == ECL_OUT_RELEASE);
+        if ((firstRelease < 0) && released)
+        {
+            firstRelease = k;
+        }
+        if (firstRelease >= 0)
+        {
+            EXPECT_TRUE(released) << "k=" << k;
+        }
+    }
+    EXPECT_GE(firstRelease, 0);
+    EXPECT_LE(firstRelease, 30);
+}
+
+/**
+ * @test      ST-F-053
+ * @brief     [목적] 충돌 전이 에서 RELEASE 가 된다.
+ * @satisfies REQ-S-001
+ * @technique 상태 전이
+ * @input     {"crash_status": "직전 상태 NONE → CONFIRMED 전이"}
+ * @procedure 이전 출력을 좌/우 LOCK 으로 하고 전이를 입력한다 / 다음 평가주기 출력을 관측한다
+ * @expected  좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_053)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(2);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.02, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_CRASH_CONFIRMED);
+}
+
+/**
+ * @test      ST-F-054
+ * @brief     [목적] 충돌 PENDING 경유 에서 RELEASE 가 된다.
+ * @satisfies REQ-S-001
+ * @technique 상태 전이
+ * @input     {"crash_status": "PENDING → CONFIRMED 전이"}
+ * @procedure 이전 출력을 좌/우 LOCK 으로 하고 전이를 입력한다 / 다음 평가주기 출력을 관측한다
+ * @expected  좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_054)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(2);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.02, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_CRASH_CONFIRMED);
+}
+
+/**
+ * @test      ST-F-055
+ * @brief     [목적] 충돌 PENDING 은 출력을 바꾸지 않고 이유 CRASH_PENDING 만 기록한다.
+ * @satisfies REQ-F-029
+ * @technique 동치 분할
+ * @input     {"crash_status": "PENDING", "이전 확정 출력": "좌 LOCK, 우 RELEASE"}
+ * @procedure PENDING 으로 1주기를 실행한다
+ * @expected  좌 LOCK, 우 RELEASE 유지, priority HOLD, reason CRASH_PENDING, 상태 ACTIVE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_055)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.state, ECL_STATE_ACTIVE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_HOLD);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_CRASH_PENDING);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+}
+
+/**
+ * @test      ST-F-056
+ * @brief     [목적] 좌 접근위험 TRUE 이면 좌 LOCK, 좌 해제 요청 억제, 억제 이유 기록, 우는 영향 없음.
+ * @satisfies REQ-S-002, REQ-S-006, REQ-S-007, REQ-F-017
+ * @technique 동치 분할
+ * @input     {"rear_left_risk": "TRUE", "명령": "좌 해제(AVN), 정지 상태", "이전 확정 출력": "좌/우 RELEASE"}
+ * @procedure 명령과 함께 1주기를 실행한다
+ * @expected  좌 LOCK, 우 RELEASE, 이유 APPROACH_RISK_HOLD, priority APPROACH
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_056)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(0.0);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
+}
+
+/**
+ * @test      ST-F-057
+ * @brief     [목적] 우 접근위험 TRUE 이면 우만 LOCK 이고 우 해제 요청이 억제되며 좌는 영향 없다.
+ * @satisfies REQ-S-002, REQ-S-006, REQ-F-017
+ * @technique 동치 분할
+ * @input     {"rear_right_risk": "TRUE", "명령": "우 해제(음성), 정지 상태", "이전 확정 출력": "좌 LOCK, 우 LOCK"}
+ * @procedure 명령과 함께 1주기를 실행한다
+ * @expected  좌 LOCK(유지), 우 LOCK, 이유 APPROACH_RISK_HOLD
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_057)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(0.0);
+        raw.rear_right_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_RIGHT, ECL_ACTION_UNLOCK, ECL_SRC_VOICE)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
+}
+
+/**
+ * @test      ST-F-058
+ * @brief     [목적] 순위 1~3 규칙의 단계별 우선순위: 접근위험만 → LOCK, +충돌 → RELEASE, +sensor_fault → 확정 출력 유지.
+ * @satisfies REQ-F-012, REQ-F-020, REQ-S-001, REQ-S-002, REQ-S-004
+ * @technique 상태 전이
+ * @input     {"주기 1": "좌 접근위험", "주기 2": "+충돌 CONFIRMED", "주기 3": "+sensor_fault, 충돌 NONE"}
+ * @procedure 3주기를 같은 제어기에서 실행한다
+ * @expected  주기 1 좌 LOCK(APPROACH), 주기 2 좌/우 RELEASE(CRASH), 주기 3 좌/우 RELEASE 유지(SENSOR_FAULT)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_058)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.rear_left_risk = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+        EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+        EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.rear_left_risk = Int(1);
+        raw.crash_status = Int(2);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.02, &out), ECL_OK);
+        EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+        EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.rear_left_risk = Int(1);
+        raw.sensor_fault = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.03, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-NF-002
  * @brief     [목적] 입력이 200 ms 를 넘게 갱신되지 않으면 그 시점부터 100 ms 이내(≤ 10 주기)에 DEGRADED 가 된다. 신선한 동안은 ACTIVE 이다.
  * @satisfies REQ-S-003, REQ-F-014
  * @technique 경계값 분석, 성능 측정
@@ -1742,7 +2047,7 @@ TEST(EclSystemTest, ST_F_051)
  * @reviewed_by     -
  * @reviewed_date   -
  */
-TEST(EclSystemTest, ST_NF_001)
+TEST(EclSystemTest, ST_NF_002)
 {
     ecl_controller_t ctl{};
     ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
@@ -1770,7 +2075,7 @@ TEST(EclSystemTest, ST_NF_001)
 }
 
 /**
- * @test      ST-NF-002
+ * @test      ST-NF-003
  * @brief     [목적] 평가주기 한 번의 평균 처리 시간이 3 ms 미만이다 (호스트, 계측 빌드, 10000주기 평균).
  * @satisfies REQ-Q-003
  * @technique 성능 측정
@@ -1785,7 +2090,7 @@ TEST(EclSystemTest, ST_NF_001)
  * @reviewed_by     -
  * @reviewed_date   -
  */
-TEST(EclSystemTest, ST_NF_002)
+TEST(EclSystemTest, ST_NF_003)
 {
     ecl_controller_t ctl{};
     ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
@@ -1803,7 +2108,7 @@ TEST(EclSystemTest, ST_NF_002)
 }
 
 /**
- * @test      ST-NF-004
+ * @test      ST-NF-005
  * @brief     [목적] 원시 입력 형식에 영상·음성·식별자 필드가 없고 성인 존재는 불리언 하나뿐이다.
  * @satisfies REQ-Q-002, REQ-Q-004
  * @technique 요구사항 분석
@@ -1818,7 +2123,7 @@ TEST(EclSystemTest, ST_NF_002)
  * @reviewed_by     -
  * @reviewed_date   -
  */
-TEST(EclSystemTest, ST_NF_004)
+TEST(EclSystemTest, ST_NF_005)
 {
     const size_t expected = (2U * sizeof(ecl_raw_num_t)) + (11U * sizeof(ecl_raw_int_t));
     EXPECT_EQ(sizeof(ecl_raw_snapshot_t), expected);

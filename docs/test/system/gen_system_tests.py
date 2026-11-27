@@ -47,10 +47,10 @@ TCS = []
 
 
 def tc(id_, basis, purpose, inputs, procedure, expected, techs, pre=None, proposed=False, pict=None,
-       cat="기능", exec_=None, env=ENV_SIL):
+       cat="기능", exec_=None, env=ENV_SIL, it_=1):
     TCS.append(dict(id=id_, category=cat, basis_ids=basis, purpose=purpose, preconditions=pre or [],
                     environment=env, inputs=inputs, procedure=procedure, expected=expected,
-                    techniques=techs, proposed=proposed, pict_model=pict, exec=exec_))
+                    techniques=techs, proposed=proposed, pict_model=pict, exec=exec_, it=it_))
 
 
 F = [0]
@@ -220,22 +220,79 @@ for (int k = 0; k < 100; ++k)
     EXPECT_EQ(out.state, ((k % 2) == 1) ? ECL_STATE_DEGRADED : ECL_STATE_ACTIVE) << "k=" << k;
 }"""))
 tc(fid(), ["REQ-F-017"], "좌/우 출력이 독립적으로 결정됨을 확인한다 (한쪽 규칙이 반대쪽 출력을 바꾸지 않음).", {"접근위험(좌)": "TRUE", "이전 확정 출력": "좌 RELEASE, 우 LOCK"},
-   ["좌만 접근위험 TRUE 로 1주기를 실행한다"], "좌 LOCK(규칙 3), 우 LOCK 유지(규칙 없음)", ["동치 분할"], ["이전 확정 출력: 좌 RELEASE, 우 LOCK"] + [""][:0] + ["이터레이션 2 이후 실행"])
+   ["좌만 접근위험 TRUE 로 1주기를 실행한다"], "좌 LOCK(규칙 3), 우 LOCK 유지(규칙 없음)", ["동치 분할"], ["이전 확정 출력: 좌 RELEASE, 우 LOCK"], it_=2,
+   exec_=simple(["ctl.confirmed.right = ECL_OUT_LOCK;"], ["raw.rear_left_risk = Int(1);"],
+                ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);",
+                 "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);"]))
 
 # ------------------------------------------------------------------ 규칙 (REQ-S-001/002/005/006/007, REQ-F-012/020, PICT)
-tc(fid(), ["REQ-S-001", "REQ-S-005"], "충돌 CONFIRMED 가 유효하면 300 ms 이내(첫 평가주기 이후 ≤ 30 주기)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.",
+tc(nfid(), ["REQ-S-001", "REQ-S-005"], "충돌 CONFIRMED 가 유효하면 300 ms 이내(10 ms 주기 30주기 이내)에 좌/우 RELEASE 가 되고 CONFIRMED 인 동안 유지된다.",
    {"crash_status": "CONFIRMED (t0 부터 3 s 유지)", "이전 확정 출력": "좌 LOCK, 우 LOCK"}, ["이전 출력을 좌/우 LOCK 으로 한다", "t0 에 CONFIRMED 를 주입하고 10 ms 주기로 300 주기를 실행한다", "RELEASE 가 된 첫 시각과 이후 출력을 관측한다"],
-   "RELEASE 가 t0 부터 300 ms 이내에 되고, 이후 300주기 동안 계속 RELEASE", ["경계값 분석", "성능 측정"], ["이터레이션 2 이후 실행"], cat="비기능")
-for t_, label in (("직전 상태 NONE → CONFIRMED 전이", "전이"), ("PENDING → CONFIRMED 전이", "PENDING 경유")):
-    tc(fid(), ["REQ-S-001"], f"충돌 {label} 에서 RELEASE 가 된다.", {"crash_status": t_}, ["전이를 입력한다", "다음 평가주기 출력을 관측한다"],
-       "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED", ["상태 전이"], ["이터레이션 2 이후 실행"])
-tc(fid(), ["REQ-F-029"], "충돌 PENDING 은 출력을 바꾸지 않고 CRASH_PENDING 만 기록하며 다른 규칙은 영향받지 않는다.", {"crash_status": "PENDING", "추가": "속도 10 km/h"},
-   ["PENDING 으로 1주기", "PENDING + 속도 3.0 km/h 로 1주기"], "첫째: 출력 유지, 이유 CRASH_PENDING / 둘째: 규칙 7 에 의해 LOCK (PENDING 이 막지 않음)", ["동치 분할", "WoW 검증"], ["이터레이션 2 이후 실행"])
+   "RELEASE 가 t0 부터 300 ms 이내(k ≤ 30)에 되고, 이후 300주기 동안 계속 RELEASE", ["경계값 분석", "성능 측정"], ["이전 확정 출력: 좌/우 LOCK"], cat="비기능", it_=2,
+   exec_=dict(body="""ecl_controller_t ctl{};
+ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+ctl.confirmed.left = ECL_OUT_LOCK;
+ctl.confirmed.right = ECL_OUT_LOCK;
+int firstRelease = -1;
+for (int k = 0; k < 300; ++k)
+{
+    ecl_raw_snapshot_t raw = ValidRaw();
+    const double now = 1.0 + (k / 100.0);
+    raw.timestamp_s = Num(now);
+    raw.crash_status = Int(ECL_CRASH_CONFIRMED);
+    ecl_cycle_result_t out{};
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, now, &out), ECL_OK);
+    const bool released = (out.decision.left == ECL_OUT_RELEASE) && (out.decision.right == ECL_OUT_RELEASE);
+    if ((firstRelease < 0) && released)
+    {
+        firstRelease = k;
+    }
+    if (firstRelease >= 0)
+    {
+        EXPECT_TRUE(released) << "k=" << k;
+    }
+}
+EXPECT_GE(firstRelease, 0);
+EXPECT_LE(firstRelease, 30);"""))
+for t_, label, pre_codes in (("직전 상태 NONE → CONFIRMED 전이", "전이", [0]), ("PENDING → CONFIRMED 전이", "PENDING 경유", [1])):
+    tc(fid(), ["REQ-S-001"], f"충돌 {label} 에서 RELEASE 가 된다.", {"crash_status": t_}, ["이전 출력을 좌/우 LOCK 으로 하고 전이를 입력한다", "다음 평가주기 출력을 관측한다"],
+       "좌/우 RELEASE, priority CRASH, reason CRASH_CONFIRMED", ["상태 전이"], ["이전 확정 출력: 좌/우 LOCK"], it_=2,
+       exec_=dict(prior=["ctl.confirmed.left = ECL_OUT_LOCK;", "ctl.confirmed.right = ECL_OUT_LOCK;"],
+                  steps=[step([f"raw.crash_status = Int({pre_codes[0]});"], 1.01), step(["raw.crash_status = Int(2);"], 1.02)],
+                  expect=["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);",
+                          "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_CRASH_CONFIRMED);"]))
+tc(fid(), ["REQ-F-029"], "충돌 PENDING 은 출력을 바꾸지 않고 이유 CRASH_PENDING 만 기록한다.", {"crash_status": "PENDING", "이전 확정 출력": "좌 LOCK, 우 RELEASE"},
+   ["PENDING 으로 1주기를 실행한다"], "좌 LOCK, 우 RELEASE 유지, priority HOLD, reason CRASH_PENDING, 상태 ACTIVE", ["동치 분할"], PRE_PRIOR, it_=2,
+   exec_=simple(LOCK_L, ["raw.crash_status = Int(1);"],
+                ["EXPECT_EQ(out.state, ECL_STATE_ACTIVE);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_HOLD);",
+                 "EXPECT_EQ(out.decision.reason_code, ECL_REASON_CRASH_PENDING);"] + HELD))
 tc(fid(), ["REQ-S-002", "REQ-S-006", "REQ-S-007", "REQ-F-017"], "좌 접근위험 TRUE 이면 좌 LOCK, 좌 해제 요청 억제, 억제 이유 기록, 우는 영향 없음.",
    {"rear_left_risk": "TRUE", "명령": "좌 해제(AVN), 정지 상태", "이전 확정 출력": "좌/우 RELEASE"}, ["명령과 함께 1주기를 실행한다"],
-   "좌 LOCK, 우 RELEASE, 이유 APPROACH_RISK_HOLD, priority APPROACH", ["동치 분할"], ["이터레이션 2 이후 실행"])
+   "좌 LOCK, 우 RELEASE, 이유 APPROACH_RISK_HOLD, priority APPROACH", ["동치 분할"], ["이전 확정 출력: 좌/우 RELEASE"], it_=2,
+   exec_=simple([], ["raw.speed_kph = Num(0.0);", "raw.rear_left_risk = Int(1);"],
+                ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);",
+                 "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);", "EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);"],
+                cmds=["Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)"]))
+tc(fid(), ["REQ-S-002", "REQ-S-006", "REQ-F-017"], "우 접근위험 TRUE 이면 우만 LOCK 이고 우 해제 요청이 억제되며 좌는 영향 없다.",
+   {"rear_right_risk": "TRUE", "명령": "우 해제(음성), 정지 상태", "이전 확정 출력": "좌 LOCK, 우 LOCK"}, ["명령과 함께 1주기를 실행한다"],
+   "좌 LOCK(유지), 우 LOCK, 이유 APPROACH_RISK_HOLD", ["동치 분할"], ["이전 확정 출력: 좌/우 LOCK"], it_=2,
+   exec_=simple(["ctl.confirmed.left = ECL_OUT_LOCK;", "ctl.confirmed.right = ECL_OUT_LOCK;"], ["raw.speed_kph = Num(0.0);", "raw.rear_right_risk = Int(1);"],
+                ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);",
+                 "EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);"],
+                cmds=["Cmd(ECL_SIDE_RIGHT, ECL_ACTION_UNLOCK, ECL_SRC_VOICE)"]))
+tc(fid(), ["REQ-F-012", "REQ-F-020", "REQ-S-001", "REQ-S-002", "REQ-S-004"], "순위 1~3 규칙의 단계별 우선순위: 접근위험만 → LOCK, +충돌 → RELEASE, +sensor_fault → 확정 출력 유지.",
+   {"주기 1": "좌 접근위험", "주기 2": "+충돌 CONFIRMED", "주기 3": "+sensor_fault, 충돌 NONE"}, ["3주기를 같은 제어기에서 실행한다"],
+   "주기 1 좌 LOCK(APPROACH), 주기 2 좌/우 RELEASE(CRASH), 주기 3 좌/우 RELEASE 유지(SENSOR_FAULT)", ["상태 전이"], ["이전 확정 출력: 좌/우 RELEASE"], it_=2,
+   exec_=dict(prior=[], steps=[step(["raw.rear_left_risk = Int(1);"], 1.01), step(["raw.rear_left_risk = Int(1);", "raw.crash_status = Int(2);"], 1.02),
+                               step(["raw.rear_left_risk = Int(1);", "raw.sensor_fault = Int(1);"], 1.03)],
+              expect=["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);",
+                      "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);"],
+              extra=[("after_step_0", ["EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);"]),
+                     ("after_step_1", ["EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);", "EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);"])]))
 tc(fid(), ["REQ-S-002"], "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.", {"주기 1": "좌 접근위험 TRUE", "주기 2": "접근위험 FALSE + 좌 해제 명령"},
-   ["두 주기를 실행한다"], "주기 1 좌 LOCK, 주기 2 좌 RELEASE (규칙 8)", ["상태 전이"], ["이터레이션 2 이후 실행"])
+   ["두 주기를 실행한다"], "주기 1 좌 LOCK, 주기 2 좌 RELEASE (규칙 8)", ["상태 전이"], ["이터레이션 3 이후 실행"])
+tc(fid(), ["REQ-F-029", "REQ-F-022"], "충돌 PENDING 이 규칙 7(이동 시작 자동 잠금)을 막지 않는다.", {"crash_status": "PENDING", "vehicle_speed_kph": "3.0"},
+   ["PENDING + 속도 3.0 km/h 로 1주기를 실행한다"], "좌/우 LOCK (규칙 7), PENDING 은 영향 없음", ["WoW 검증"], ["이터레이션 3 이후 실행"])
 
 PICT = json.loads((REPO / "docs/test/system/pict_PW-01.json").read_text(encoding="utf-8"))
 
@@ -430,13 +487,13 @@ def main():
     # 실행 상태: 베이시스의 구현 이터레이션 정보와 TC 의 exec 유무
     for t in TCS:
         runnable = t["exec"] is not None
-        status = "자동 실행(이터레이션 1)" if runnable else ("검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)" if t["environment"].startswith("검사") else "미실시 (" + "; ".join(x for x in t["preconditions"] if "이터레이션" in x) + ")")
+        status = f"자동 실행(이터레이션 {t['it']})" if runnable else ("검사 대기 (G3/G4 제출 전 수행, 이번 이터레이션 미수행)" if t["environment"].startswith("검사") else "미실시 (" + "; ".join(x for x in t["preconditions"] if "이터레이션" in x) + ")")
         t["status"] = status
         if t["status"].startswith("미실시") and not any("이터레이션" in x for x in t["preconditions"]):
             t["status"] = "미실시 (이터레이션 미정)"
     spec_tcs = []
     for t in TCS:
-        d = {k: v for k, v in t.items() if k not in ("exec", "status")}
+        d = {k: v for k, v in t.items() if k not in ("exec", "status", "it")}
         d["preconditions"] = [p for p in d["preconditions"] if p]
         d["environment"] = d["environment"] + f" | 실행 상태: {t['status']}"
         if not d["pict_model"]:

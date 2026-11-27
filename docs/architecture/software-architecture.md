@@ -1,8 +1,8 @@
 # 소프트웨어 아키텍처 — 전자식 차일드락 제어 SW (SWE.2)
 
 - 문서 ID: SWA-ECL-001, 버전 0.1 (이터레이션 1, OEM 게이트 G2 대상)
-- 입력: `docs/requirements/software-requirements.md` v0.2, `docs/safety/safety-requirements.md` v0.2 (재리뷰 미완료, `docs/review/review-waiver-iteration-1.md`)
-- 작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1 면제.
+- 입력: `docs/requirements/software-requirements.md` v0.2, `docs/safety/safety-requirements.md` v0.2 (재리뷰 미완료, `docs/review/review-waiver.md`)
+- 작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1~2 면제.
 - 구현 언어: C17 (REQ-C-001). 시험은 C++20 (GoogleTest/GMock).
 
 ## 1. 설계 개요
