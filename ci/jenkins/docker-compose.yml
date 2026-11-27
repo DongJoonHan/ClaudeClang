@@ -1,0 +1,23 @@
+# 현재 PC의 Docker 위에서 실행하는 Jenkins (안정화 LTS, 포트 8080)
+#   시작: docker compose -f ci/jenkins/docker-compose.yml --env-file ci/jenkins/.env up -d --build
+#   중지: docker compose -f ci/jenkins/docker-compose.yml down        (데이터 볼륨은 유지)
+#   접속: http://localhost:8080  (관리자 계정은 .env 의 JENKINS_ADMIN_PASSWORD)
+services:
+  jenkins:
+    build: .
+    image: claudeclang-jenkins:lts
+    container_name: claudeclang-jenkins
+    user: root                     # /var/run/docker.sock 접근용 (로컬 개발 환경 전제)
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:?ci/jenkins/.env 에 JENKINS_ADMIN_PASSWORD 를 설정하세요}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../..:/repo-src:ro         # 이 저장소 (멀티브랜치 작업의 Git 원본)
+
+volumes:
+  jenkins_home:

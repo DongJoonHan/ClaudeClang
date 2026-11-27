@@ -1,0 +1,22 @@
+# 빌드·측정 결과
+build/
+out/
+*.profraw
+*.profdata
+
+# Jenkins 실행 데이터 (Docker 볼륨으로 관리, 저장소에 넣지 않음)
+ci/jenkins/data/
+ci/jenkins/.env
+
+# Python
+__pycache__/
+*.pyc
+
+# 편집기·OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code 개인 설정
+.claude/settings.local.json

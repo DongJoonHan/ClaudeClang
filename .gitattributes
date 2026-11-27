@@ -1,0 +1,11 @@
+# 줄바꿈: 저장소에는 LF로 저장하고, 쉘 스크립트·Docker·Jenkins 파일은 체크아웃에서도 LF를 유지한다.
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
+Jenkinsfile text eol=lf
+*.groovy text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.xlsx binary

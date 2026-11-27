@@ -1,0 +1,111 @@
+# ClaudeClang CI (PR 병합 게이트)
+#
+# 개발 환경·Jenkins와 같은 Dockerfile(docker/Dockerfile)로 빌드 이미지를 만들고,
+# 같은 스크립트(ci/scripts/*.sh)로 빌드와 품질 기준을 검사한다.
+# 이 워크플로가 통과해야 PR을 병합할 수 있다 (브랜치 보호의 필수 체크: build-and-verify).
+#
+# 합격 기준 (CLAUDE.md 2절)
+#   단위: 성공률 100% + MC/DC 100%     통합: 성공률 100% + 함수 커버리지 100%
+#   시스템: 요구사항 커버리지 100%       Cppcheck 0건(예외 없음), Lizard CCN<=10 / 80라인 이하
+#   주석: Doxygen 경고 0건 + Human-in-the-Loop 태그
+# 이 PC의 Jenkins(ci/jenkins)는 같은 검사를 주기적으로 한 번 더 실행하는 보조 검증이다.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main, 'release/**', 'hotfix/**']
+  push:
+    branches: [develop, main, 'release/**', 'hotfix/**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: build-and-verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # 빌드 이미지 claudeclangbuild (Docker 저장소 이름은 소문자만 허용). 레이어는 GitHub 캐시를 쓴다.
+      - name: Build image (claudeclangbuild)
+        uses: docker/build-push-action@v7
+        with:
+          context: docker
+          file: docker/Dockerfile
+          load: true
+          push: false
+          tags: claudeclangbuild:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Tool versions
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            claudeclangbuild:latest ci/scripts/tool-versions.sh
+
+      # 이미지, 스크립트, 품질 게이트 자체가 정상인지 참조 프로젝트(ci/smoke)로 점검한다.
+      - name: Toolchain self-check (ci/smoke)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            claudeclangbuild:latest ci/scripts/smoke.sh
+
+      # 빌드 + Cppcheck + Lizard + 주석/HITL + Doxygen + 단위/통합/TDD 시험 + 요구사항 커버리지.
+      # 한 단계가 실패해도 끝까지 실행하고 마지막에 요약하며, 하나라도 실패하면 이 단계가 실패한다.
+      - name: Build and quality gates
+        if: ${{ !cancelled() }}
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            claudeclangbuild:latest ci/scripts/run-all.sh
+
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "## 품질 게이트 리포트"
+            for suite in unit integration tdd; do
+              report="build/reports/$suite/coverage.txt"
+              if [ -f "$report" ]; then
+                echo "### $suite 커버리지 (llvm-cov)"
+                echo '```'
+                cat "$report"
+                echo '```'
+              fi
+            done
+            for file in cppcheck.txt lizard.txt hitl.txt doxygen-warnings.txt req-coverage.txt; do
+              if [ -f "build/reports/$file" ]; then
+                echo "### $file"
+                echo '```'
+                cat "build/reports/$file"
+                echo '```'
+              fi
+            done
+            [ -f build/reports/cloc-ratio.csv ] && echo "주석률(CLOC, 보고만): $(tail -n 1 build/reports/cloc-ratio.csv)%"
+          } >> "$GITHUB_STEP_SUMMARY" || true
+
+      # 컨테이너가 root로 만든 리포트(llvm-cov HTML 등)를 러너 사용자가 읽을 수 있게 한다.
+      - name: Fix report ownership
+        if: ${{ !cancelled() }}
+        run: sudo chown -R "$(id -u):$(id -g)" build ci/smoke/build 2>/dev/null || true
+
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-reports
+          path: |
+            build/reports/
+            build/doxygen/
+            ci/smoke/build/reports/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -24,6 +24,7 @@ description: A-SPICE(SUP.2 검증/리뷰) 기준으로 모든 개발 산출물(�
 | 소스 코드 | `checklists/code.md` | SWE.3 |
 | 단위 테스트 | `checklists/unit-test.md` | SWE.4 |
 | 통합 테스트 | `checklists/integration-test.md` | SWE.5 |
+| 시스템 테스트 | `checklists/system-test.md` | SWE.6 |
 | 추적 매트릭스 | `checklists/traceability.md` | 전 단계 공통 |
 
 체크리스트 관리 규칙:
