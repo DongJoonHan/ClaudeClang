@@ -35,11 +35,11 @@ static inline ecl_raw_int_t MissingInt()
     return ecl_raw_int_t{0, 0};
 }
 
-// 모든 필드가 유효한 원시 입력 묶음: 속도 10 km/h, 기어 D, 시각 1.0 s, 충돌 없음, 점화 켜짐
+// 모든 필드가 유효한 원시 입력 묶음: 속도 0 km/h(정지), 기어 D, 시각 1.0 s, 충돌 없음, 점화 켜짐
 static inline ecl_raw_snapshot_t ValidRaw()
 {
     ecl_raw_snapshot_t raw{};
-    raw.speed_kph = Num(10.0);
+    raw.speed_kph = Num(0.0);
     raw.gear = Int(ECL_GEAR_D);
     raw.timestamp_s = Num(1.0);
     raw.crash_status = Int(ECL_CRASH_NONE);
@@ -75,6 +75,19 @@ static inline ecl_raw_command_t Cmd(int side, int action, int source)
     return cmd;
 }
 
+// 채택된 명령 결과 (command_intake 의 결과를 직접 만든다)
+static inline ecl_command_result_t AcceptedCommand(ecl_side_t side, ecl_action_t action, double timeS)
+{
+    ecl_command_result_t cmd{};
+    cmd.accepted = 1;
+    cmd.side = side;
+    cmd.action = action;
+    cmd.source = ECL_SRC_AVN;
+    cmd.request_time_s = timeS;
+    cmd.note = ECL_REASON_NONE;
+    return cmd;
+}
+
 // 모든 필드가 유효한 검증 입력 (다른 모듈의 결과에 의존하지 않고 직접 만든다)
 static inline ecl_validated_t ValidValidated()
 {
@@ -94,7 +107,7 @@ static inline ecl_validated_t ValidValidated()
     setValid(v.isofix_right);
     setValid(v.ignition_on);
     setValid(v.sensor_fault);
-    v.speed_kph = ecl_val_num_t{1, 10.0};
+    v.speed_kph = ecl_val_num_t{1, 0.0};
     v.timestamp_s = ecl_val_num_t{1, 1.0};
     v.ignition_on.value = 1;
     v.stale = 0;

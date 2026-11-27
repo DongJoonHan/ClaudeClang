@@ -83,7 +83,7 @@ TEST(EclControllerIntegrationTest, InvalidInputDegradesAndRecoversAutomatically)
     EXPECT_EQ(out.warnings, ECL_WARN_INPUT_INVALID);
     EXPECT_EQ(out.decision.reason_code, ECL_REASON_INPUT_INVALID);
     EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
-    raw.speed_kph = Num(20.0);
+    raw.speed_kph = Num(2.0);
     ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.03, &out), ECL_OK);
     EXPECT_EQ(out.state, ECL_STATE_ACTIVE);
     EXPECT_EQ(out.decision.reason_code, ECL_REASON_NONE);
@@ -310,7 +310,7 @@ TEST(EclControllerIntegrationTest, CrashConfirmedReleasesAndHoldsThenKeepsReleas
  * @technique 도어 독립 + 반복 요청
  * @input     우 접근위험 TRUE, 이전 좌/우 LOCK, 매 주기 좌 해제 명령과 우 해제 명령 번갈아
  * @procedure 1) 3주기 실행
- * @expected  우는 항상 LOCK(reason APPROACH_RISK_HOLD), 좌는 확정 출력 LOCK 유지
+ * @expected  우는 항상 LOCK(reason APPROACH_RISK_HOLD), 좌는 해제 명령이 온 주기(k=1)에 RELEASE (규칙 8) 되고 이후 유지, k=0 은 LOCK 유지
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -333,7 +333,7 @@ TEST(EclControllerIntegrationTest, ApproachRiskSuppressesUnlockRequestsPerDoor)
         ecl_cycle_result_t out{};
         ASSERT_EQ(ecl_controller_step(&ctl, &raw, &cmd, 1, 1.01 + (0.01 * k), &out), ECL_OK);
         EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
-        EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+        EXPECT_EQ(out.decision.left, (k >= 1) ? ECL_OUT_RELEASE : ECL_OUT_LOCK);
         EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
         EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
     }
@@ -423,6 +423,128 @@ TEST(EclControllerIntegrationTest, SameSequenceWithRulesGivesSameResults)
         EXPECT_EQ(a.state, b.state);
         now += 0.01;
     }
+}
+
+/**
+ * @test      IT-ecl-012
+ * @brief     [목적] 정지 중 운전자 명령(좌 잠금, 전체 해제)이 접수·규칙 평가를 거쳐 출력으로 공개되고 이후 주기에 유지된다.
+ * @satisfies ARCH-I-002, ARCH-I-004, ARCH-I-006, REQ-F-021, REQ-F-034
+ * @technique 데이터 흐름 + 상태 유지
+ * @input     정지, 주기 1 좌 잠금(물리 버튼), 주기 2 명령 없음, 주기 3 전체 해제(모바일 앱)
+ * @procedure 1) 세 주기 실행
+ * @expected  주기 1: 좌 LOCK/우 RELEASE, 주기 2: 유지, 주기 3: 좌/우 RELEASE (reason DRIVER_CMD)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclControllerIntegrationTest, DriverCommandsFlowThroughStationaryCycles)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    const ecl_raw_snapshot_t raw = ValidRaw();
+    ecl_cycle_result_t out{};
+    const ecl_raw_command_t lockLeft = Cmd(ECL_SIDE_LEFT, ECL_ACTION_LOCK, ECL_SRC_PHYSICAL_BUTTON);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &lockLeft, 1, 1.01, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_DRIVER_CMD);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.02, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_HOLD);
+    const ecl_raw_command_t unlockAll = Cmd(ECL_SIDE_ALL, ECL_ACTION_UNLOCK, ECL_SRC_MOBILE_APP);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &unlockAll, 1, 1.03, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+}
+
+/**
+ * @test      IT-ecl-013
+ * @brief     [목적] 접근위험 억제 → 10초 내 재입력 override → 접근위험 해소로 override 종료가 제어기를 거쳐 공개된다.
+ * @satisfies ARCH-I-004, ARCH-I-006, REQ-F-023, REQ-F-036
+ * @technique 상태 전이(억제 → override → 해소 → 재발)
+ * @input     좌 접근위험, 해제 명령 t=100.0, 105.0, 이후 위험 해소, 재발
+ * @procedure 1) 다섯 주기 실행
+ * @expected  t=100 좌 LOCK(APPROACH_RISK_HOLD), t=105 좌 RELEASE(OVERRIDE), 위험 해소 후 RELEASE 유지, 재발 시 LOCK(APPROACH_RISK_HOLD)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclControllerIntegrationTest, OverrideFlowsThroughControllerAndClearsWhenRiskEnds)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    const ecl_raw_command_t unlock = Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN);
+    ecl_cycle_result_t out{};
+    ecl_raw_snapshot_t raw = ValidRaw();
+    raw.rear_left_risk = Int(1);
+    raw.timestamp_s = Num(100.0);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &unlock, 1, 100.0, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
+    raw.timestamp_s = Num(105.0);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &unlock, 1, 105.0, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);
+    raw.timestamp_s = Num(106.0);
+    raw.rear_left_risk = Int(0);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 106.0, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    raw.timestamp_s = Num(107.0);
+    raw.rear_left_risk = Int(1);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 107.0, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
+}
+
+/**
+ * @test      IT-ecl-014
+ * @brief     [목적] 이동 시작 자동 잠금과 명령 거절 이유, 화재·점화 꺼짐 해제의 순위가 제어기를 거쳐 공개된다.
+ * @satisfies ARCH-I-004, ARCH-I-006, REQ-F-022, REQ-F-025, REQ-F-027, REQ-F-035
+ * @technique 우선순위 단계별(7 → 4 → 5)
+ * @input     속도 5 + 해제 명령, 속도 5 + 화재, 속도 0 + 점화 꺼짐 + ISOFIX 좌
+ * @procedure 1) 세 주기 실행
+ * @expected  1: 좌/우 LOCK + CMD_REJECTED_MOVING, 2: 좌/우 RELEASE(FIRE), 3: 좌/우 RELEASE(IGNITION_OFF, 상태 OFF)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclControllerIntegrationTest, MovingStartLocksAndRejectsCommandThenEmergencyAndIgnitionReleaseByRank)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    ecl_raw_snapshot_t raw = ValidRaw();
+    raw.speed_kph = Num(5.0);
+    const ecl_raw_command_t unlock = Cmd(ECL_SIDE_ALL, ECL_ACTION_UNLOCK, ECL_SRC_VOICE);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &unlock, 1, 1.01, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.command_note, ECL_REASON_CMD_REJECTED_MOVING);
+    raw.fire = Int(1);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.02, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_FIRE);
+    raw.fire = Int(0);
+    raw.speed_kph = Num(0.0);
+    raw.ignition_on = Int(0);
+    raw.isofix_left = Int(1);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.03, &out), ECL_OK);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_IGNITION_OFF);
+    EXPECT_EQ(out.state, ECL_STATE_OFF);
 }
 
 }  // namespace

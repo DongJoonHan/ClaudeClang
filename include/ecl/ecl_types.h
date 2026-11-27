@@ -506,6 +506,39 @@ typedef struct
     unsigned warnings;        /**< 경고코드 비트 합 */
 } ecl_cycle_result_t;
 
+/**
+ * @brief   도어 하나의 접근위험 억제 상태 (override 판정용 기억, REQ-F-023).
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+typedef struct
+{
+    int has_first;          /**< 1 이면 첫 억제된 해제 요청의 시각을 기억함 */
+    double first_time_s;    /**< 첫 억제된 해제 요청의 시각 [s] */
+    int override_active;    /**< 1 이면 override 상태 (접근위험이 FALSE 가 될 때까지) */
+} ecl_door_memory_t;
+
+/**
+ * @brief   규칙 엔진이 평가주기 사이에 기억하는 상태 (좌/우 도어별).
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+typedef struct
+{
+    ecl_door_memory_t left;   /**< 좌 도어 */
+    ecl_door_memory_t right;  /**< 우 도어 */
+} ecl_rule_memory_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -31,7 +31,8 @@ extern "C" {
  */
 typedef struct
 {
-    ecl_decision_t confirmed;  /**< 직전 평가주기의 확정 결정 */
+    ecl_decision_t confirmed;   /**< 직전 평가주기의 확정 결정 */
+    ecl_rule_memory_t memory;   /**< 규칙 엔진의 기억 (override 판정) */
 } ecl_controller_t;
 
 /**

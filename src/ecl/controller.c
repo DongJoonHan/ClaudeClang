@@ -34,6 +34,7 @@ ecl_status_t ecl_controller_init(ecl_controller_t* ctl)
         ctl->confirmed.priority_reason = ECL_PRIO_HOLD;
         ctl->confirmed.reason_code = ECL_REASON_NONE;
         ctl->confirmed.command_note = ECL_REASON_NONE;
+        ctl->memory = (ecl_rule_memory_t){{0, 0.0, 0}, {0, 0.0, 0}};
     }
 
     return result;
@@ -56,7 +57,7 @@ static double request_time_of(const ecl_validated_t* validated)
  * 이 모듈의 하위 호출이 돌려줄 수 있는 오류는 ECL_ERR_NULL_ARG 뿐이다 (명령 배열 널 + 개수 > 0). */
 static ecl_status_t run_stages(const ecl_controller_t* ctl, const ecl_raw_snapshot_t* raw,
                                const ecl_raw_command_t* cmds, size_t count, double eval_time_s,
-                               ecl_cycle_result_t* staged)
+                               ecl_cycle_result_t* staged, ecl_rule_memory_t* memory)
 {
     ecl_validated_t validated = {0};
     ecl_command_result_t command = {0};
@@ -66,7 +67,8 @@ static ecl_status_t run_stages(const ecl_controller_t* ctl, const ecl_raw_snapsh
     errors |= (unsigned)ecl_input_validate(raw, eval_time_s, &validated);
     errors |= (unsigned)ecl_command_intake(cmds, count, request_time_of(&validated), &command);
     errors |= (unsigned)ecl_status_evaluate(&validated, &status);
-    errors |= (unsigned)ecl_rule_decide(&validated, &command, &ctl->confirmed, &staged->decision);
+    errors |= (unsigned)ecl_rule_decide(&validated, &command, &ctl->confirmed, memory,
+                                        &staged->decision);
     staged->state = status.state;
     staged->warnings = status.warnings;
 
@@ -88,10 +90,13 @@ ecl_status_t ecl_controller_step(ecl_controller_t* ctl, const ecl_raw_snapshot_t
     }
     else
     {
-        result = run_stages(ctl, raw, cmds, count, eval_time_s, &staged);
+        ecl_rule_memory_t memory = ctl->memory;
+
+        result = run_stages(ctl, raw, cmds, count, eval_time_s, &staged, &memory);
         if (result == ECL_OK)
         {
             ctl->confirmed = staged.decision;
+            ctl->memory = memory;
             *out = staged;
         }
     }

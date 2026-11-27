@@ -64,7 +64,7 @@
 
 ### 1.3 규칙표 (정본)
 
-규칙 순위 1이 최상위다. "효과"는 그 규칙이 적용될 때 해당 도어에 내리는 결정이다. 규칙의 사용 입력이 하나라도 INVALID이면 그 규칙은 적용 가능하지 않다 (REQ-F-010).
+규칙 순위 1이 최상위다. "효과"는 그 규칙이 적용될 때 해당 도어에 내리는 결정이다. 규칙의 사용 입력이 하나라도 INVALID이면 그 규칙은 적용 가능하지 않다 (REQ-F-010). 단 "하나라도 TRUE" 조건을 가진 규칙(규칙 4)은 개별 TRUE 신호 각각이 유효할 때 적용되며 다른 신호의 INVALID가 이를 막지 않는다 (REQ-F-025).
 
 | 순위 | 규칙 | 사용 입력 | 조건 | 효과 | 요구사항 |
 |---|---|---|---|---|---|
@@ -75,7 +75,7 @@
 | 5 | IGNITION_OFF | ignition_on | FALSE | 좌/우 RELEASE | REQ-F-027 |
 | 6 | ISOFIX | isofix_left, isofix_right | 해당 쪽 TRUE | 해당 도어 LOCK | REQ-F-026 |
 | 7 | AUTO_LOCK | vehicle_speed_kph | 3.0 이상 | 좌/우 LOCK | REQ-F-022 |
-| 8 | DRIVER_CMD | vehicle_speed_kph, 명령 | 정지이고 유효한 명령 1건 | 명령의 side 가 가리키는 도어에 action 적용 | REQ-F-021 |
+| 8 | DRIVER_CMD | 모든 필수 입력, 명령 | 모든 필수 입력이 유효하고 정지이며 유효한 명령 1건 (REQ-F-021) | 명령의 side 가 가리키는 도어에 action 적용 | REQ-F-021 |
 | 9 | HOLD | — | 위 규칙이 효과를 내지 않음 | 확정 출력 유지 | REQ-F-011 |
 
 REQ-F-020 은 이 표를 정의한다.
