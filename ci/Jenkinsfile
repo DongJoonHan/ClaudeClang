@@ -34,6 +34,17 @@ def gated(String name, Closure body, Closure publish = null) {
     }
 }
 
+// 이 PC의 Jenkins는 GitHub Actions(.github/workflows/ci.yml, PR 게이트)와 별개로 같은 검사를
+// 주기적으로 한 번 더 실행하는 보조 검증이다. 통합 브랜치(develop, main, release/*, hotfix/*)만
+// 6시간마다(분은 Jenkins가 분산) 자동 실행하고, 그 외 브랜치는 수동 또는 브랜치 스캔 때만 실행한다.
+def branch = env.BRANCH_NAME ?: ''
+def periodic = (branch == 'develop' || branch == 'main' ||
+                branch.startsWith('release/') || branch.startsWith('hotfix/'))
+properties([
+    buildDiscarder(logRotator(numToKeepStr: '30')),
+    pipelineTriggers(periodic ? [cron('H H/6 * * *')] : [])
+])
+
 node {
     timestamps {
         timeout(time: 90, unit: 'MINUTES') {

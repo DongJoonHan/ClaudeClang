@@ -19,7 +19,7 @@ jobs:
   - script: >
       multibranchPipelineJob('ClaudeClang') {
         displayName('ClaudeClang')
-        description('Gitflow 브랜치(develop, feature/*, release/*, hotfix/*, main)를 자동으로 찾아 ci/Jenkinsfile로 빌드한다.')
+        description('GitHub Actions(PR 게이트)와 별개로 이 PC에서 주기적으로 같은 검사를 실행하는 보조 검증. Gitflow 브랜치를 1시간마다 찾고, develop/main/release/hotfix는 6시간마다 자동 빌드한다.')
         branchSources {
           git {
             id('claudeclang-local-repo')
@@ -38,7 +38,7 @@ jobs:
         }
         triggers {
           periodicFolderTrigger {
-            interval('1m')
+            interval('1h')
           }
         }
       }

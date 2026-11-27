@@ -5,7 +5,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 ## 현재 상태
 
 - 제품 소스 코드(`src/`)와 제품 테스트는 아직 없습니다.
-- 개발 환경(Docker 이미지 `claudeclangbuild`, CMake 빌드), 품질 검사 스크립트(`ci/scripts/`), Lizard Hook, CI(Jenkins)는 **구축되어 있습니다** (4, 5절).
+- 개발 환경(Docker 이미지 `claudeclangbuild`, CMake 빌드), 품질 검사 스크립트(`ci/scripts/`), Lizard Hook, CI(GitHub Actions 게이트 + Jenkins 주기 검증)는 **구축되어 있습니다** (4, 5절).
 - 파이프라인이 정상인지 확인하는 참조 프로젝트가 `ci/smoke/`에 있고, 새 코드의 작성 템플릿(HITL 주석, 단일 return, 상태 반환, GoogleTest/GMock)으로도 쓴다.
 
 ### 자주 쓰는 명령
@@ -160,7 +160,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 ### 3.2 PR과 CI
 
-- PR은 CI를 활용한다. **CI가 통과해야만 PR을 완료(병합)한다.**
+- PR은 CI를 활용한다. CI는 **GitHub Actions**(`.github/workflows/ci.yml`)이며, **필수 체크 `build-and-verify`가 통과해야만 PR을 완료(병합)한다** (5절). 이 PC의 Jenkins는 PR 게이트가 아니라 주기적 보조 검증이다.
 - CI에서 통과해야 하는 항목:
   1. **빌드 성공**
   2. **2절의 소스 코드 품질 기준 전부**: 테스트 성공률, 커버리지(단위 MC/DC, 통합 함수, 시스템 요구사항), Cppcheck 0건, Lizard(CCN ≤ 10, 함수 ≤ 80라인), Doxygen 주석·HITL 항목
@@ -212,16 +212,29 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 ## 5. CI 환경
 
-- **Jenkins 안정화(LTS) 버전**을 사용한다. 현재 PC의 **Docker 위에서 실행**하고, 포트는 **8080**을 사용한다.
-- 필요한 **플러그인은 설치를 완료한 상태**로 구성한다.
-- 테스트, 정적 분석, 커버리지, 메트릭 등의 **결과를 Jenkins 플러그인에서 확인**할 수 있어야 한다.
-  - 시험 결과(GoogleTest JUnit XML), 정적 분석(Cppcheck), 메트릭(Lizard), 커버리지(LLVM), 주석률(CLOC)을 각각 플러그인 화면에서 볼 수 있게 구성한다. 사용할 플러그인은 구축 시 확정한다.
-- 빌드는 4.1절의 `ClaudeCLangBuild` 이미지 안에서 실행한다. Jenkins 컨테이너는 Docker 소켓으로 호스트 Docker에 빌드 컨테이너를 띄우고(`--volumes-from`으로 작업 공간 공유), 이 이미지를 쓴다.
-- 위치: `ci/Jenkinsfile`(파이프라인), `ci/jenkins/`(Jenkins 이미지, `plugins.txt`, JCasC `casc/jenkins.yaml`, `docker-compose.yml`), `ci/scripts/`(개발·CI 공용 검사 스크립트).
-- 접속: `http://localhost:8080`, 계정 `admin`, 비밀번호는 `ci/jenkins/.env`의 `JENKINS_ADMIN_PASSWORD` (git 제외). 작업 `ClaudeClang`은 멀티브랜치 파이프라인이며, 이 PC의 저장소(`/repo-src`로 마운트)에서 Gitflow 브랜치를 1분마다 찾아 `ci/Jenkinsfile`로 빌드한다. **커밋된 상태만 빌드한다.**
-- 파이프라인 단계: Environment → Toolchain self-check(`ci/smoke`로 이미지·게이트 점검) → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(요구사항) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
+CI는 두 계층이며 둘 다 4.1절의 같은 이미지(`docker/Dockerfile`)와 같은 스크립트(`ci/scripts/`)를 쓴다.
+
+| 계층 | 역할 | 실행 시점 |
+|---|---|---|
+| **GitHub Actions** | **PR 병합 게이트** (필수 체크 `build-and-verify`) | `develop`/`main`/`release/**`/`hotfix/**` 대상 PR과 해당 브랜치 푸시, 수동 실행 |
+| **Jenkins (이 PC, Docker)** | **주기적 보조 검증** + 플러그인 화면으로 결과 확인 | `develop`/`main`/`release/*`/`hotfix/*`를 6시간마다, 브랜치 스캔은 1시간마다 |
+
+### 5.1 GitHub Actions (PR 게이트)
+
+- 워크플로: `.github/workflows/ci.yml`. 순서: 이미지 빌드(GitHub 캐시) → 도구 버전 → Toolchain self-check(`ci/smoke`) → `ci/scripts/run-all.sh`(빌드, Cppcheck, Lizard, 주석/HITL, Doxygen, TDD/단위/통합 시험, 요구사항 커버리지) → 요약·리포트 업로드.
+- 한 단계가 실패해도 끝까지 실행하고 마지막에 실패 처리한다. 합격 기준은 2절 전부이며 예외는 없다.
+- 결과: Actions 실행 화면의 Job summary(커버리지 표, Cppcheck/Lizard/HITL/Doxygen 출력)와 `ci-reports` 아티팩트(JUnit XML, lcov, llvm-cov HTML, 요약 JSON).
+- **브랜치 보호**: `main`, `develop`은 PR 필수 + 필수 체크 `build-and-verify` 통과 필수로 설정한다 (3절의 직접 커밋 금지를 서버에서도 강제).
+
+### 5.2 Jenkins (주기적 보조 검증)
+
+- **Jenkins 안정화(LTS)** 를 현재 PC의 **Docker 위에서** 실행하고, 포트는 **8080**을 쓴다. 필요한 **플러그인은 설치를 완료한 상태**로 이미지에 들어 있다.
+- 위치: `ci/Jenkinsfile`(파이프라인), `ci/jenkins/`(이미지, `plugins.txt`, JCasC `casc/jenkins.yaml`, `docker-compose.yml`), `ci/scripts/`(공용 검사 스크립트).
+- 접속: `http://localhost:8080`, 계정 `admin`, 비밀번호는 `ci/jenkins/.env`의 `JENKINS_ADMIN_PASSWORD` (git 제외). 작업 `ClaudeClang`은 멀티브랜치 파이프라인이며, 이 PC의 저장소(`/repo-src`로 마운트)에서 Gitflow 브랜치를 1시간마다 찾고, **통합 브랜치(`develop`, `main`, `release/*`, `hotfix/*`)는 6시간마다(`cron('H H/6 * * *')`) 자동 빌드**한다. 그 외 브랜치는 스캔 때 변경이 있으면 빌드한다. **로컬에 커밋된 상태만 빌드한다.**
+- 빌드는 `claudeclangbuild` 이미지에서 실행한다. Jenkins 컨테이너가 Docker 소켓으로 호스트 Docker에 빌드 컨테이너를 띄우고 `--volumes-from`으로 작업 공간을 공유한다.
+- 파이프라인 단계: Environment → Toolchain self-check → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(요구사항) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
 - 결과 확인(플러그인): 시험 결과(JUnit), Cppcheck/Lizard/HITL/Doxygen(Warnings NG), 커버리지(Coverage 플러그인, LCOV), LLVM HTML 리포트(MC/DC 포함, HTML Publisher), 주석률(CLOC 결과를 Plot 플러그인으로 표시 — CLOC 전용 Jenkins 플러그인은 업데이트 센터에서 제거되어 사용할 수 없다).
-- GitHub와의 연동(PR 상태 보고, 병합 차단)은 아직 없다. Jenkins가 로컬 PC에서만 접근 가능해 GitHub webhook을 받을 수 없다. 현재는 Jenkins 빌드 결과를 확인한 뒤 PR을 병합한다.
+- Jenkins는 GitHub에 결과를 보고하지 않는다 (로컬 PC에서만 접근 가능하고 webhook을 받지 않음). PR 병합 판단은 Actions 결과로 한다.
 
 ---
 
