@@ -323,4 +323,44 @@ TEST(ControllerTest, OneCycleIsFasterThanThreeMilliseconds)
     EXPECT_LT(averageMs, 3.0);
 }
 
+/**
+ * @test      UT-ctl-012
+ * @brief     [목적] 규칙 엔진 기억이 주기 사이에 유지되어 override 가 되고, 오류 주기에는 기억이 갱신되지 않는다.
+ * @satisfies REQ-F-023, REQ-F-036, DD-M-006
+ * @technique 상태 전이 + 오류 경로
+ * @input     좌 접근위험, 해제 명령 t=100.0, 오류 주기, 해제 명령 t=105.0
+ * @procedure 1) 첫 요청 2) cmds=nullptr,count=1 오류 3) 두 번째 요청
+ * @expected  2단계: ECL_ERR_NULL_ARG 이고 기억 변화 없음, 3단계: 좌 RELEASE, reason OVERRIDE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(ControllerTest, OverrideMemoryPersistsAcrossCyclesAndIsNotCommittedOnError)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    EXPECT_EQ(ctl.memory.left.has_first, 0);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_raw_snapshot_t raw = ValidRaw();
+    raw.rear_left_risk = Int(1);
+    const ecl_raw_command_t cmd = Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN);
+    ecl_cycle_result_t out{};
+    raw.timestamp_s = Num(100.0);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &cmd, 1, 100.0, &out), ECL_OK);
+    EXPECT_EQ(ctl.memory.left.has_first, 1);
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    raw.timestamp_s = Num(103.0);
+    EXPECT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 1, 103.0, &out), ECL_ERR_NULL_ARG);
+    EXPECT_EQ(ctl.memory.left.override_active, 0);
+    raw.timestamp_s = Num(105.0);
+    ASSERT_EQ(ecl_controller_step(&ctl, &raw, &cmd, 1, 105.0, &out), ECL_OK);
+    EXPECT_EQ(ctl.memory.left.override_active, 1);
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);
+}
+
 }  // namespace

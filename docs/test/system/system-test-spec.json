@@ -405,11 +405,11 @@
    "purpose": "정상 입력(유효 클래스 대표값)이 ACTIVE 로 처리되고 이전 확정 출력이 유지됨을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
-    "vehicle_speed_kph": "10.0",
+    "vehicle_speed_kph": "0.0",
     "gear": "D",
     "crash_status": "NONE",
     "불리언 9종": "ignition_on=TRUE, 나머지 FALSE",
@@ -435,7 +435,7 @@
    "purpose": "속도 하한 경계값 0.0 km/h 가 유효임을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -459,7 +459,7 @@
    "purpose": "속도 상한 경계값 300.0 km/h 가 유효임을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -484,7 +484,7 @@
    "purpose": "속도 하한 미만(-0.1) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -510,7 +510,7 @@
    "purpose": "속도 상한 초과(300.1) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -536,7 +536,7 @@
    "purpose": "속도 누락(누락) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -562,7 +562,7 @@
    "purpose": "속도 NaN(NaN) 는 INVALID 이며 제어 평가에 쓰이지 않음을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -587,7 +587,7 @@
    "purpose": "기어 코드 0(P) 가 유효임을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -611,7 +611,7 @@
    "purpose": "기어 코드 3(R) 가 유효임을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -636,7 +636,7 @@
    "purpose": "기어 범위 밖 는 INVALID 이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -662,7 +662,7 @@
    "purpose": "기어 누락 는 INVALID 이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -689,7 +689,7 @@
    "purpose": "timestamp 누락 이면 입력 묶음 전체가 INVALID 이다 (신선도 판단 불가).",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -715,7 +715,7 @@
    "purpose": "timestamp NaN 이면 입력 묶음 전체가 INVALID 이다 (신선도 판단 불가).",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -739,7 +739,7 @@
    "purpose": "충돌 상태 NONE 이 유효하고 다른 영향이 없음을 확인한다 (PENDING/CONFIRMED 는 REQ-F-029, REQ-S-001 케이스).",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -764,7 +764,7 @@
    "purpose": "충돌 상태 범위 밖 는 INVALID 이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -790,7 +790,7 @@
    "purpose": "충돌 상태 누락 는 INVALID 이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -816,7 +816,7 @@
    "purpose": "rear_left_risk 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -841,7 +841,7 @@
    "purpose": "rear_left_risk 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -866,7 +866,7 @@
    "purpose": "rear_right_risk 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -891,7 +891,7 @@
    "purpose": "rear_right_risk 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -916,7 +916,7 @@
    "purpose": "fire_detected 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -941,7 +941,7 @@
    "purpose": "fire_detected 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -966,7 +966,7 @@
    "purpose": "overtemperature_detected 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -991,7 +991,7 @@
    "purpose": "overtemperature_detected 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1016,7 +1016,7 @@
    "purpose": "adult_present 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1041,7 +1041,7 @@
    "purpose": "adult_present 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1066,7 +1066,7 @@
    "purpose": "isofix_left 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1091,7 +1091,7 @@
    "purpose": "isofix_left 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1116,7 +1116,7 @@
    "purpose": "isofix_right 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1141,7 +1141,7 @@
    "purpose": "isofix_right 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1166,7 +1166,7 @@
    "purpose": "ignition_on 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1191,7 +1191,7 @@
    "purpose": "ignition_on 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1216,7 +1216,7 @@
    "purpose": "sensor_fault 불리언 아님(2) 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1241,7 +1241,7 @@
    "purpose": "sensor_fault 누락 는 INVALID 이며 그 입력에 의존하는 규칙은 적용되지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1266,7 +1266,7 @@
    "purpose": "운전자 명령의 side 가 범위 밖 3 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1294,7 +1294,7 @@
    "purpose": "운전자 명령의 side 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1322,7 +1322,7 @@
    "purpose": "운전자 명령의 action 가 범위 밖 2 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1350,7 +1350,7 @@
    "purpose": "운전자 명령의 action 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1378,7 +1378,7 @@
    "purpose": "운전자 명령의 source 가 범위 밖 4 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1406,7 +1406,7 @@
    "purpose": "운전자 명령의 source 가 누락 이면 명령을 거절하고 평가에 쓰지 않는다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1434,7 +1434,7 @@
    "purpose": "한 평가주기에 유효한 명령 2건이 오면 첫 1건만 평가에 쓰고 나머지는 거절 이유로 기록한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1459,19 +1459,19 @@
    ],
    "purpose": "운전자 명령의 요청 시각이 입력 묶음의 source_timestamp_s 임을 override 10초 경계로 확인한다 (평가 시각이 달라도 timestamp 기준).",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "접근위험": "TRUE(좌)",
     "해제 명령 1": "timestamp 100.0 s, 평가 시각 100.0 s",
-    "해제 명령 2": "timestamp 109.9 s, 평가 시각 130.0 s(지연 평가)"
+    "해제 명령 2": "timestamp 109.95 s, 평가 시각 110.1 s (timestamp 보다 0.15 s 늦음, 신선함)"
    },
    "procedure": [
     "좌 접근위험 TRUE 로 첫 해제 명령을 보낸다 (억제됨)",
-    "timestamp 109.9, 평가 시각 130.0 으로 같은 해제 명령을 다시 보낸다"
+    "timestamp 109.95, 평가 시각 110.1 로 같은 해제 명령을 다시 보낸다"
    ],
-   "expected": "두 번째 명령이 override 로 처리된다 (timestamp 차 9.9 s ≤ 10 s). 평가 시각 차(30 s)를 쓰면 override 되지 않으므로 구분된다.",
+   "expected": "두 번째 명령이 override 로 처리된다 (timestamp 차 9.95 s ≤ 10 s). 평가 시각 차(10.1 s)를 쓰면 override 되지 않으므로 구분된다. 좌 RELEASE, reason OVERRIDE.",
    "techniques": [
     "경계값 분석",
     "WoW 검증"
@@ -1491,7 +1491,7 @@
    "purpose": "sensor_fault 가 유효한 TRUE 이면 첫 주기에 FAULT, 경고, 출력 유지, 규칙 1 이 적용된다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1518,7 +1518,7 @@
    "purpose": "sensor_fault 가 유효한 TRUE 이고 다른 필드(속도)가 INVALID 이어도 규칙 1 은 자신의 입력이 유효하므로 적용된다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1545,7 +1545,7 @@
    "purpose": "sensor_fault 입력이 INVALID 이면 규칙 1 은 적용되지 않고 FAULT 가 아니다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1570,7 +1570,7 @@
    "purpose": "stale 입력(나이 0.25 s)은 DEGRADED 이고 INPUT_STALE 경고, 이유 INPUT_STALE, 출력 유지이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1644,7 +1644,7 @@
    "purpose": "오류가 해소되면 다음 평가주기에 자동으로 ACTIVE 로 복귀한다 (DEGRADED 와 FAULT 모두).",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1696,7 +1696,7 @@
    "purpose": "10 ms 평가주기로 100주기를 실행하고, 오류 입력이 같은 주기에 상태에 반영됨(지연 없음)을 확인한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {
@@ -1822,7 +1822,7 @@
    "purpose": "충돌 PENDING 은 출력을 바꾸지 않고 이유 CRASH_PENDING 만 기록한다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 2)",
    "inputs": {
@@ -1930,17 +1930,17 @@
    ],
    "purpose": "접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
-    "주기 1": "좌 접근위험 TRUE",
+    "주기 1": "좌 접근위험 TRUE + 좌 해제 명령",
     "주기 2": "접근위험 FALSE + 좌 해제 명령"
    },
    "procedure": [
     "두 주기를 실행한다"
    ],
-   "expected": "주기 1 좌 LOCK, 주기 2 좌 RELEASE (규칙 8)",
+   "expected": "주기 1 좌 LOCK(억제), 주기 2 좌 RELEASE (규칙 8, reason DRIVER_CMD)",
    "techniques": [
     "상태 전이"
    ],
@@ -1955,9 +1955,9 @@
    ],
    "purpose": "충돌 PENDING 이 규칙 7(이동 시작 자동 잠금)을 막지 않는다.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "crash_status": "PENDING",
     "vehicle_speed_kph": "3.0"
@@ -1980,9 +1980,10 @@
    ],
    "purpose": "PICT 조합 #1: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "PENDING",
@@ -2014,9 +2015,10 @@
    ],
    "purpose": "PICT 조합 #2: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "1",
     "crash_status": "NONE",
@@ -2048,9 +2050,10 @@
    ],
    "purpose": "PICT 조합 #3: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "PENDING",
@@ -2082,9 +2085,10 @@
    ],
    "purpose": "PICT 조합 #4: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "CONFIRMED",
@@ -2116,9 +2120,10 @@
    ],
    "purpose": "PICT 조합 #5: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "1",
     "crash_status": "NONE",
@@ -2150,9 +2155,10 @@
    ],
    "purpose": "PICT 조합 #6: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "1",
     "crash_status": "PENDING",
@@ -2184,9 +2190,10 @@
    ],
    "purpose": "PICT 조합 #7: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "1",
     "crash_status": "CONFIRMED",
@@ -2218,9 +2225,10 @@
    ],
    "purpose": "PICT 조합 #8: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "1",
     "crash_status": "CONFIRMED",
@@ -2252,9 +2260,10 @@
    ],
    "purpose": "PICT 조합 #9: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "NONE",
@@ -2286,9 +2295,10 @@
    ],
    "purpose": "PICT 조합 #10: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "NONE",
@@ -2320,9 +2330,10 @@
    ],
    "purpose": "PICT 조합 #11: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌 LOCK, 우 RELEASE",
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "sensor_fault": "0",
     "crash_status": "PENDING",
@@ -2352,11 +2363,11 @@
     "REQ-F-021",
     "REQ-F-034"
    ],
-   "purpose": "정지 상태에서 네 입력 경로(source)와 side 3종이 선택한 도어에만 동작을 적용한다.",
+   "purpose": "정지 상태에서 네 입력 경로(source)와 side 3종, action 2종이 선택한 도어에만 동작을 적용한다.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: action 의 반대 값"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "source": "physical_button, avn, voice, mobile_app",
     "side": "left, right, all",
@@ -2365,7 +2376,7 @@
    "procedure": [
     "정지·정상 입력에서 조합마다 명령을 보낸다"
    ],
-   "expected": "side 가 가리키는 도어에만 action 적용, 네 source 의 결과가 같다",
+   "expected": "side 가 가리키는 도어에만 action 적용, 반대쪽은 이전 출력 유지, 네 source 의 결과가 같다",
    "techniques": [
     "동치 분할"
    ],
@@ -2379,9 +2390,9 @@
    ],
    "purpose": "이동 중(속도 3.0 이상) 유효한 명령은 적용되지 않고 CMD_REJECTED_MOVING 으로 기록된다.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "속도": "3.0 km/h",
     "명령": "좌 해제"
@@ -2403,16 +2414,16 @@
    ],
    "purpose": "속도 2.9 km/h (직전) 에서 자동 잠금 판정.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "vehicle_speed_kph": "2.9"
    },
    "procedure": [
     "이전 출력 RELEASE 에서 1주기"
    ],
-   "expected": "자동 잠금 아님(HOLD)",
+   "expected": "자동 잠금 아님(HOLD, 좌/우 RELEASE 유지)",
    "techniques": [
     "경계값 분석"
    ],
@@ -2426,9 +2437,9 @@
    ],
    "purpose": "속도 3.0 km/h (경계) 에서 자동 잠금 판정.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "vehicle_speed_kph": "3.0"
    },
@@ -2449,9 +2460,9 @@
    ],
    "purpose": "속도 3.1 km/h (직후) 에서 자동 잠금 판정.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "vehicle_speed_kph": "3.1"
    },
@@ -2473,9 +2484,9 @@
    ],
    "purpose": "첫 억제 후 10.0 s 에 같은 해제 재입력.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "간격": "10.0 s"
    },
@@ -2483,7 +2494,7 @@
     "접근위험 TRUE 에서 해제 명령",
     "10.0 s 후 같은 해제 명령"
    ],
-   "expected": "override, override 면 좌 RELEASE 와 reason OVERRIDE",
+   "expected": "override: 좌 RELEASE, reason OVERRIDE",
    "techniques": [
     "경계값 분석"
    ],
@@ -2498,9 +2509,9 @@
    ],
    "purpose": "첫 억제 후 10.1 s 에 같은 해제 재입력.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "간격": "10.1 s"
    },
@@ -2508,7 +2519,7 @@
     "접근위험 TRUE 에서 해제 명령",
     "10.1 s 후 같은 해제 명령"
    ],
-   "expected": "override 아님(첫 억제와 동일하게 LOCK 유지), override 면 좌 RELEASE 와 reason OVERRIDE",
+   "expected": "override 아님: 새 첫 억제로 보아 좌 LOCK 유지, reason APPROACH_RISK_HOLD",
    "techniques": [
     "경계값 분석"
    ],
@@ -2522,9 +2533,9 @@
    ],
    "purpose": "fire_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "fire_detected": "TRUE"
    },
@@ -2545,9 +2556,9 @@
    ],
    "purpose": "overtemperature_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "overtemperature_detected": "TRUE"
    },
@@ -2568,9 +2579,9 @@
    ],
    "purpose": "adult_present 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "adult_present": "TRUE"
    },
@@ -2592,9 +2603,9 @@
    ],
    "purpose": "isofix_left 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "입력": "isofix_left 만"
    },
@@ -2616,9 +2627,9 @@
    ],
    "purpose": "isofix_right 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "입력": "isofix_right 만"
    },
@@ -2639,9 +2650,9 @@
    ],
    "purpose": "ignition_on 이 FALSE 로 바뀐 첫 주기에 좌/우 RELEASE, 상태 OFF, 이유 IGNITION_OFF.",
    "preconditions": [
-    "이터레이션 3 이후 실행"
+    "이전 확정 출력: 좌/우 LOCK"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "ignition_on": "TRUE→FALSE"
    },
@@ -2663,9 +2674,9 @@
    ],
    "purpose": "각 규칙이 결정한 출력의 reason_code 와 priority_reason 이 부록 A 의 대응 표와 일치한다.",
    "preconditions": [
-    "이터레이션 2~3 이후 실행"
+    "이전 확정 출력: 좌/우 RELEASE"
    ],
-   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 미실시 (이터레이션 2~3 이후 실행)",
+   "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 3)",
    "inputs": {
     "규칙": "1~8, HOLD"
    },
@@ -2805,7 +2816,7 @@
    "purpose": "입력이 200 ms 를 넘게 갱신되지 않으면 그 시점부터 100 ms 이내(≤ 10 주기)에 DEGRADED 가 된다. 신선한 동안은 ACTIVE 이다.",
    "preconditions": [
     "이전 확정 출력: 좌 LOCK, 우 RELEASE",
-    "모든 입력 정상(속도 10 km/h, 기어 D, 점화 켜짐)"
+    "모든 입력 정상(속도 0 km/h 정지, 기어 D, 점화 켜짐)"
    ],
    "environment": "SIL: ecl_core 호스트 빌드(Clang, C17), test/system 시험이 controller 인터페이스(ARCH-I-006)로 실행 | 실행 상태: 자동 실행(이터레이션 1)",
    "inputs": {

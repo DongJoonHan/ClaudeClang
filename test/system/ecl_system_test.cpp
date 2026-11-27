@@ -24,7 +24,7 @@ namespace
  * @brief     [목적] 정상 입력(유효 클래스 대표값)이 ACTIVE 로 처리되고 이전 확정 출력이 유지됨을 확인한다.
  * @satisfies REQ-F-001, REQ-F-002, REQ-F-004, REQ-F-005, REQ-F-016, REQ-F-011
  * @technique 동치 분할
- * @input     {"vehicle_speed_kph": "10.0", "gear": "D", "crash_status": "NONE", "불리언 9종": "ignition_on=TRUE, 나머지 FALSE", "timestamp": "1.0 s, 평가 시각 1.01 s"}
+ * @input     {"vehicle_speed_kph": "0.0", "gear": "D", "crash_status": "NONE", "불리언 9종": "ignition_on=TRUE, 나머지 FALSE", "timestamp": "1.0 s, 평가 시각 1.01 s"}
  * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 만든다 / 정상 입력으로 1주기를 실행한다 / 상태와 출력을 관측한다
  * @expected  상태 ACTIVE, 경고 없음, 좌 LOCK, 우 RELEASE (규칙 없음 → HOLD, 이유 NONE)
  *
@@ -1408,6 +1408,47 @@ TEST(EclSystemTest, ST_F_041)
 }
 
 /**
+ * @test      ST-F-042
+ * @brief     [목적] 운전자 명령의 요청 시각이 입력 묶음의 source_timestamp_s 임을 override 10초 경계로 확인한다 (평가 시각이 달라도 timestamp 기준).
+ * @satisfies REQ-F-008, REQ-F-023
+ * @technique 경계값 분석, WoW 검증
+ * @input     {"접근위험": "TRUE(좌)", "해제 명령 1": "timestamp 100.0 s, 평가 시각 100.0 s", "해제 명령 2": "timestamp 109.95 s, 평가 시각 110.1 s (timestamp 보다 0.15 s 늦음, 신선함)"}
+ * @procedure 좌 접근위험 TRUE 로 첫 해제 명령을 보낸다 (억제됨) / timestamp 109.95, 평가 시각 110.1 로 같은 해제 명령을 다시 보낸다
+ * @expected  두 번째 명령이 override 로 처리된다 (timestamp 차 9.95 s ≤ 10 s). 평가 시각 차(10.1 s)를 쓰면 override 되지 않으므로 구분된다. 좌 RELEASE, reason OVERRIDE.
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_042)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(100.0);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 100.0, &out), ECL_OK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(109.95);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 110.1, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);
+}
+
+/**
  * @test      ST-F-043
  * @brief     [목적] sensor_fault 가 유효한 TRUE 이면 첫 주기에 FAULT, 경고, 출력 유지, 규칙 1 이 적용된다.
  * @satisfies REQ-F-014, REQ-S-004, REQ-S-009, REQ-F-010, REQ-F-011
@@ -2029,6 +2070,963 @@ TEST(EclSystemTest, ST_F_058)
     EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
     EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
     EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-059
+ * @brief     [목적] 접근위험이 FALSE 로 돌아오면 억제가 풀리고 해제 명령이 적용된다.
+ * @satisfies REQ-S-002
+ * @technique 상태 전이
+ * @input     {"주기 1": "좌 접근위험 TRUE + 좌 해제 명령", "주기 2": "접근위험 FALSE + 좌 해제 명령"}
+ * @procedure 두 주기를 실행한다
+ * @expected  주기 1 좌 LOCK(억제), 주기 2 좌 RELEASE (규칙 8, reason DRIVER_CMD)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_059)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+        EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.02, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_DRIVER_CMD);
+}
+
+/**
+ * @test      ST-F-060
+ * @brief     [목적] 충돌 PENDING 이 규칙 7(이동 시작 자동 잠금)을 막지 않는다.
+ * @satisfies REQ-F-029, REQ-F-022
+ * @technique WoW 검증
+ * @input     {"crash_status": "PENDING", "vehicle_speed_kph": "3.0"}
+ * @procedure PENDING + 속도 3.0 km/h 로 1주기를 실행한다
+ * @expected  좌/우 LOCK (규칙 7), PENDING 은 영향 없음
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_060)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        raw.speed_kph = Num(3.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_AUTO_LOCK);
+}
+
+/**
+ * @test      ST-F-061
+ * @brief     [목적] PICT 조합 #1: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "PENDING", "approach_left": "1", "emergency": "none", "ignition_on": "1", "isofix_left": "1", "speed_kph": "0", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_061)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        raw.rear_left_risk = Int(1);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(0.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+}
+
+/**
+ * @test      ST-F-062
+ * @brief     [목적] PICT 조합 #2: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "1", "crash_status": "NONE", "approach_left": "0", "emergency": "adult", "ignition_on": "0", "isofix_left": "0", "speed_kph": "0", "command": "left_unlock"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_062)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.sensor_fault = Int(1);
+        raw.crash_status = Int(0);
+        raw.adult_present = Int(1);
+        raw.ignition_on = Int(0);
+        raw.speed_kph = Num(0.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-063
+ * @brief     [목적] PICT 조합 #3: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "PENDING", "approach_left": "0", "emergency": "adult", "ignition_on": "1", "isofix_left": "0", "speed_kph": "10", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 RELEASE, 우 RELEASE, priority_reason EMERGENCY_RELEASE (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_063)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        raw.adult_present = Int(1);
+        raw.speed_kph = Num(10.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_EMERGENCY_RELEASE);
+}
+
+/**
+ * @test      ST-F-064
+ * @brief     [목적] PICT 조합 #4: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "CONFIRMED", "approach_left": "1", "emergency": "fire", "ignition_on": "0", "isofix_left": "1", "speed_kph": "0", "command": "left_unlock"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 RELEASE, 우 RELEASE, priority_reason CRASH (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_064)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(2);
+        raw.rear_left_risk = Int(1);
+        raw.fire = Int(1);
+        raw.ignition_on = Int(0);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(0.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_CRASH);
+}
+
+/**
+ * @test      ST-F-065
+ * @brief     [목적] PICT 조합 #5: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "1", "crash_status": "NONE", "approach_left": "1", "emergency": "fire", "ignition_on": "1", "isofix_left": "1", "speed_kph": "10", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_065)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.sensor_fault = Int(1);
+        raw.crash_status = Int(0);
+        raw.rear_left_risk = Int(1);
+        raw.fire = Int(1);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(10.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-066
+ * @brief     [목적] PICT 조합 #6: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "1", "crash_status": "PENDING", "approach_left": "0", "emergency": "fire", "ignition_on": "0", "isofix_left": "0", "speed_kph": "0", "command": "left_unlock"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_066)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.sensor_fault = Int(1);
+        raw.crash_status = Int(1);
+        raw.fire = Int(1);
+        raw.ignition_on = Int(0);
+        raw.speed_kph = Num(0.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-067
+ * @brief     [목적] PICT 조합 #7: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "1", "crash_status": "CONFIRMED", "approach_left": "1", "emergency": "adult", "ignition_on": "1", "isofix_left": "0", "speed_kph": "10", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_067)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.sensor_fault = Int(1);
+        raw.crash_status = Int(2);
+        raw.rear_left_risk = Int(1);
+        raw.adult_present = Int(1);
+        raw.speed_kph = Num(10.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-068
+ * @brief     [목적] PICT 조합 #8: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "1", "crash_status": "CONFIRMED", "approach_left": "0", "emergency": "none", "ignition_on": "1", "isofix_left": "1", "speed_kph": "0", "command": "left_unlock"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason SENSOR_FAULT (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_068)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.sensor_fault = Int(1);
+        raw.crash_status = Int(2);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(0.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_SENSOR_FAULT);
+}
+
+/**
+ * @test      ST-F-069
+ * @brief     [목적] PICT 조합 #9: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "NONE", "approach_left": "1", "emergency": "adult", "ignition_on": "0", "isofix_left": "1", "speed_kph": "0", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 RELEASE, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_069)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(0);
+        raw.rear_left_risk = Int(1);
+        raw.adult_present = Int(1);
+        raw.ignition_on = Int(0);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(0.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+}
+
+/**
+ * @test      ST-F-070
+ * @brief     [목적] PICT 조합 #10: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "NONE", "approach_left": "1", "emergency": "none", "ignition_on": "1", "isofix_left": "0", "speed_kph": "10", "command": "none"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 LOCK, 우 LOCK, priority_reason APPROACH (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_070)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(0);
+        raw.rear_left_risk = Int(1);
+        raw.speed_kph = Num(10.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_APPROACH);
+}
+
+/**
+ * @test      ST-F-071
+ * @brief     [목적] PICT 조합 #11: 규칙 우선순위 상호작용(좌/우 독립 결정, 이전 확정 출력 좌 LOCK, 우 RELEASE).
+ * @satisfies REQ-F-012, REQ-F-020
+ * @technique 페어와이즈(PICT)
+ * @input     {"sensor_fault": "0", "crash_status": "PENDING", "approach_left": "0", "emergency": "none", "ignition_on": "0", "isofix_left": "1", "speed_kph": "0", "command": "left_unlock"}
+ * @procedure 이전 확정 출력을 좌 LOCK, 우 RELEASE 로 한다 / 입력 조합으로 1주기를 실행한다 / 출력과 priority_reason 을 관측한다
+ * @expected  좌 RELEASE, 우 RELEASE, priority_reason IGNITION_OFF (SRS 1.3절 규칙표에서 계산)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_071)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.crash_status = Int(1);
+        raw.ignition_on = Int(0);
+        raw.isofix_left = Int(1);
+        raw.speed_kph = Num(0.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_IGNITION_OFF);
+}
+
+/**
+ * @test      ST-F-072
+ * @brief     [목적] 정지 상태에서 네 입력 경로(source)와 side 3종, action 2종이 선택한 도어에만 동작을 적용한다.
+ * @satisfies REQ-F-021, REQ-F-034
+ * @technique 동치 분할
+ * @input     {"source": "physical_button, avn, voice, mobile_app", "side": "left, right, all", "action": "lock, unlock"}
+ * @procedure 정지·정상 입력에서 조합마다 명령을 보낸다
+ * @expected  side 가 가리키는 도어에만 action 적용, 반대쪽은 이전 출력 유지, 네 source 의 결과가 같다
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_072)
+{
+    for (int side = 0; side <= 2; ++side)
+    {
+        for (int action = 0; action <= 1; ++action)
+        {
+            for (int source = 0; source <= 3; ++source)
+            {
+                ecl_controller_t ctl{};
+                ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+                const ecl_output_t wanted = (action == ECL_ACTION_LOCK) ? ECL_OUT_LOCK : ECL_OUT_RELEASE;
+                const ecl_output_t other = (action == ECL_ACTION_LOCK) ? ECL_OUT_RELEASE : ECL_OUT_LOCK;
+                ctl.confirmed.left = other;
+                ctl.confirmed.right = other;
+                const ecl_raw_snapshot_t raw = ValidRaw();
+                const ecl_raw_command_t cmd = Cmd(side, action, source);
+                ecl_cycle_result_t out{};
+                ASSERT_EQ(ecl_controller_step(&ctl, &raw, &cmd, 1, 1.01, &out), ECL_OK);
+                EXPECT_EQ(out.decision.left, (side == ECL_SIDE_RIGHT) ? other : wanted) << side << action << source;
+                EXPECT_EQ(out.decision.right, (side == ECL_SIDE_LEFT) ? other : wanted) << side << action << source;
+            }
+        }
+    }
+}
+
+/**
+ * @test      ST-F-073
+ * @brief     [목적] 이동 중(속도 3.0 이상) 유효한 명령은 적용되지 않고 CMD_REJECTED_MOVING 으로 기록된다.
+ * @satisfies REQ-F-035
+ * @technique 경계값 분석
+ * @input     {"속도": "3.0 km/h", "명령": "좌 해제"}
+ * @procedure 명령과 함께 1주기
+ * @expected  좌 LOCK(규칙 7), command_note CMD_REJECTED_MOVING
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_073)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(3.0);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.command_note, ECL_REASON_CMD_REJECTED_MOVING);
+}
+
+/**
+ * @test      ST-F-074
+ * @brief     [목적] 속도 2.9 km/h (직전) 에서 자동 잠금 판정.
+ * @satisfies REQ-F-022
+ * @technique 경계값 분석
+ * @input     {"vehicle_speed_kph": "2.9"}
+ * @procedure 이전 출력 RELEASE 에서 1주기
+ * @expected  자동 잠금 아님(HOLD, 좌/우 RELEASE 유지)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_074)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(2.9);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.priority_reason, ECL_PRIO_HOLD);
+}
+
+/**
+ * @test      ST-F-075
+ * @brief     [목적] 속도 3.0 km/h (경계) 에서 자동 잠금 판정.
+ * @satisfies REQ-F-022
+ * @technique 경계값 분석
+ * @input     {"vehicle_speed_kph": "3.0"}
+ * @procedure 이전 출력 RELEASE 에서 1주기
+ * @expected  좌/우 LOCK (규칙 7, 이유 AUTO_LOCK_MOVING)
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_075)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(3.0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_AUTO_LOCK_MOVING);
+}
+
+/**
+ * @test      ST-F-076
+ * @brief     [목적] 속도 3.1 km/h (직후) 에서 자동 잠금 판정.
+ * @satisfies REQ-F-022
+ * @technique 경계값 분석
+ * @input     {"vehicle_speed_kph": "3.1"}
+ * @procedure 이전 출력 RELEASE 에서 1주기
+ * @expected  좌/우 LOCK
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_076)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.speed_kph = Num(3.1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_AUTO_LOCK_MOVING);
+}
+
+/**
+ * @test      ST-F-077
+ * @brief     [목적] 첫 억제 후 10.0 s 에 같은 해제 재입력.
+ * @satisfies REQ-F-023, REQ-F-036
+ * @technique 경계값 분석
+ * @input     {"간격": "10.0 s"}
+ * @procedure 접근위험 TRUE 에서 해제 명령 / 10.0 s 후 같은 해제 명령
+ * @expected  override: 좌 RELEASE, reason OVERRIDE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_077)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(100.0);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 100.0, &out), ECL_OK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(110.0);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 110.0, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERRIDE);
+}
+
+/**
+ * @test      ST-F-078
+ * @brief     [목적] 첫 억제 후 10.1 s 에 같은 해제 재입력.
+ * @satisfies REQ-F-023, REQ-F-036
+ * @technique 경계값 분석
+ * @input     {"간격": "10.1 s"}
+ * @procedure 접근위험 TRUE 에서 해제 명령 / 10.1 s 후 같은 해제 명령
+ * @expected  override 아님: 새 첫 억제로 보아 좌 LOCK 유지, reason APPROACH_RISK_HOLD
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_078)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(100.0);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 100.0, &out), ECL_OK);
+    }
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.timestamp_s = Num(110.1);
+        raw.rear_left_risk = Int(1);
+        const ecl_raw_command_t cmds[1] = {Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN)};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, cmds, 1, 110.1, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_APPROACH_RISK_HOLD);
+}
+
+/**
+ * @test      ST-F-079
+ * @brief     [목적] fire_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.
+ * @satisfies REQ-F-025
+ * @technique 동치 분할
+ * @input     {"fire_detected": "TRUE"}
+ * @procedure 이전 좌/우 LOCK 에서 신호 주입 후 1주기
+ * @expected  좌/우 RELEASE, reason FIRE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_079)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.fire = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_FIRE);
+}
+
+/**
+ * @test      ST-F-080
+ * @brief     [목적] overtemperature_detected 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.
+ * @satisfies REQ-F-025
+ * @technique 동치 분할
+ * @input     {"overtemperature_detected": "TRUE"}
+ * @procedure 이전 좌/우 LOCK 에서 신호 주입 후 1주기
+ * @expected  좌/우 RELEASE, reason OVERTEMP
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_080)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.overtemp = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_OVERTEMP);
+}
+
+/**
+ * @test      ST-F-081
+ * @brief     [목적] adult_present 단독 TRUE 이면 다음 주기에 좌/우 RELEASE.
+ * @satisfies REQ-F-025
+ * @technique 동치 분할
+ * @input     {"adult_present": "TRUE"}
+ * @procedure 이전 좌/우 LOCK 에서 신호 주입 후 1주기
+ * @expected  좌/우 RELEASE, reason ADULT_PRESENT
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_081)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.adult_present = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_ADULT_PRESENT);
+}
+
+/**
+ * @test      ST-F-082
+ * @brief     [목적] isofix_left 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.
+ * @satisfies REQ-F-026, REQ-F-017
+ * @technique 동치 분할
+ * @input     {"입력": "isofix_left 만"}
+ * @procedure 이전 좌/우 RELEASE 에서 1주기
+ * @expected  좌 LOCK, 우 RELEASE
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_082)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.isofix_left = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_LOCK);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+}
+
+/**
+ * @test      ST-F-083
+ * @brief     [목적] isofix_right 만 TRUE 이면 해당 도어만 LOCK, 반대쪽은 그대로.
+ * @satisfies REQ-F-026, REQ-F-017
+ * @technique 동치 분할
+ * @input     {"입력": "isofix_right 만"}
+ * @procedure 이전 좌/우 RELEASE 에서 1주기
+ * @expected  좌 RELEASE, 우 LOCK
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_083)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.isofix_right = Int(1);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_LOCK);
+}
+
+/**
+ * @test      ST-F-084
+ * @brief     [목적] ignition_on 이 FALSE 로 바뀐 첫 주기에 좌/우 RELEASE, 상태 OFF, 이유 IGNITION_OFF.
+ * @satisfies REQ-F-027
+ * @technique 상태 전이
+ * @input     {"ignition_on": "TRUE→FALSE"}
+ * @procedure 이전 좌/우 LOCK 에서 1주기
+ * @expected  좌/우 RELEASE, OFF, reason IGNITION_OFF
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_084)
+{
+    ecl_controller_t ctl{};
+    ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+    ctl.confirmed.left = ECL_OUT_LOCK;
+    ctl.confirmed.right = ECL_OUT_LOCK;
+    ecl_cycle_result_t out{};
+    {
+        ecl_raw_snapshot_t raw = ValidRaw();
+        raw.ignition_on = Int(0);
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, nullptr, 0, 1.01, &out), ECL_OK);
+    }
+    EXPECT_EQ(out.decision.left, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.decision.right, ECL_OUT_RELEASE);
+    EXPECT_EQ(out.state, ECL_STATE_OFF);
+    EXPECT_EQ(out.decision.reason_code, ECL_REASON_IGNITION_OFF);
+}
+
+/**
+ * @test      ST-F-085
+ * @brief     [목적] 각 규칙이 결정한 출력의 reason_code 와 priority_reason 이 부록 A 의 대응 표와 일치한다.
+ * @satisfies REQ-F-028, REQ-F-037
+ * @technique 동치 분할
+ * @input     {"규칙": "1~8, HOLD"}
+ * @procedure 규칙마다 단독 조건을 만들어 1주기씩 실행한다
+ * @expected  priority_reason 과 reason_code 가 부록 A 의 대응과 같다
+ *
+ * @ai_model        claude-sonnet-5-5
+ * @ai_date         2026-11-27
+ * @requested_by    DongJoonHan
+ * @human_reviewed  no
+ * @reviewed_by     -
+ * @reviewed_date   -
+ */
+TEST(EclSystemTest, ST_F_085)
+{
+    struct Scenario
+    {
+        const char* name;
+        void (*setup)(ecl_raw_snapshot_t&);
+        bool command;
+        ecl_priority_t priority;
+        ecl_reason_t reason;
+    };
+    const Scenario scenarios[] = {
+        {"규칙 1", [](ecl_raw_snapshot_t& raw) { raw.sensor_fault = Int(1); }, false, ECL_PRIO_SENSOR_FAULT, ECL_REASON_SENSOR_FAULT},
+        {"규칙 2", [](ecl_raw_snapshot_t& raw) { raw.crash_status = Int(2); }, false, ECL_PRIO_CRASH, ECL_REASON_CRASH_CONFIRMED},
+        {"규칙 3", [](ecl_raw_snapshot_t& raw) { raw.rear_left_risk = Int(1); }, false, ECL_PRIO_APPROACH, ECL_REASON_APPROACH_RISK_HOLD},
+        {"규칙 4", [](ecl_raw_snapshot_t& raw) { raw.fire = Int(1); }, false, ECL_PRIO_EMERGENCY_RELEASE, ECL_REASON_FIRE},
+        {"규칙 5", [](ecl_raw_snapshot_t& raw) { raw.ignition_on = Int(0); }, false, ECL_PRIO_IGNITION_OFF, ECL_REASON_IGNITION_OFF},
+        {"규칙 6", [](ecl_raw_snapshot_t& raw) { raw.isofix_right = Int(1); }, false, ECL_PRIO_ISOFIX, ECL_REASON_ISOFIX_RIGHT},
+        {"규칙 7", [](ecl_raw_snapshot_t& raw) { raw.speed_kph = Num(5.0); }, false, ECL_PRIO_AUTO_LOCK, ECL_REASON_AUTO_LOCK_MOVING},
+        {"규칙 8", [](ecl_raw_snapshot_t& raw) { static_cast<void>(raw); }, true, ECL_PRIO_DRIVER_CMD, ECL_REASON_DRIVER_CMD},
+        {"HOLD", [](ecl_raw_snapshot_t& raw) { raw.crash_status = Int(1); }, false, ECL_PRIO_HOLD, ECL_REASON_CRASH_PENDING},
+        {"HOLD(NONE)", [](ecl_raw_snapshot_t& raw) { static_cast<void>(raw); }, false, ECL_PRIO_HOLD, ECL_REASON_NONE},
+    };
+    for (const Scenario& sc : scenarios)
+    {
+        ecl_controller_t ctl{};
+        ASSERT_EQ(ecl_controller_init(&ctl), ECL_OK);
+        ecl_raw_snapshot_t raw = ValidRaw();
+        sc.setup(raw);
+        const ecl_raw_command_t cmd = Cmd(ECL_SIDE_LEFT, ECL_ACTION_UNLOCK, ECL_SRC_AVN);
+        ecl_cycle_result_t out{};
+        ASSERT_EQ(ecl_controller_step(&ctl, &raw, sc.command ? &cmd : nullptr, sc.command ? 1U : 0U, 1.01, &out), ECL_OK);
+        EXPECT_EQ(out.decision.priority_reason, sc.priority) << sc.name;
+        EXPECT_EQ(out.decision.reason_code, sc.reason) << sc.name;
+    }
 }
 
 /**

@@ -69,7 +69,7 @@ TEST(InputValidationTest, ReturnsErrNullArgWhenOutIsNull)
  * @technique 동치 클래스(유효 입력)
  * @input     ValidRaw(), eval=1.1
  * @procedure 1) 검증한다.
- * @expected  ECL_OK, all_valid == 1, stale == 0, speed == 10.0, gear == D, ignition == 1
+ * @expected  ECL_OK, all_valid == 1, stale == 0, speed == 0.0, gear == D, ignition == 1
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -86,7 +86,7 @@ TEST(InputValidationTest, AcceptsValidSnapshotAndCopiesValues)
     EXPECT_EQ(out.all_valid, 1);
     EXPECT_EQ(out.stale, 0);
     EXPECT_EQ(out.speed_kph.valid, 1);
-    EXPECT_DOUBLE_EQ(out.speed_kph.value, 10.0);
+    EXPECT_DOUBLE_EQ(out.speed_kph.value, 0.0);
     EXPECT_EQ(out.gear.value, ECL_GEAR_D);
     EXPECT_EQ(out.ignition_on.value, 1);
 }

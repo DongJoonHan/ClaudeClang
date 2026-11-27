@@ -3,7 +3,7 @@
 - 문서 ID: SWD-ECL-001, 버전 0.1 (이터레이션 1, OEM 게이트 G2 대상)
 - 입력: `docs/architecture/software-architecture.md` v0.1
 - 작성 정보: claude-sonnet-5-5, 2026-11-27, 요청자 DongJoonHan. 사용자 리뷰: 미완료. 리뷰: 이터레이션 1~2 면제.
-- 범위: 이터레이션 1~2 구현 대상 모듈(ARCH-C-001, 002, 003, 004(이터 2: 규칙 1~3·HOLD), 006, 009). 나머지 컴포넌트는 해당 이터레이션에서 추가한다.
+- 범위: 이터레이션 1~3 구현 대상 모듈(ARCH-C-001, 002, 003, 004(이터 3: 규칙 1~8·HOLD·override), 006, 009). 나머지 컴포넌트는 해당 이터레이션에서 추가한다.
 - "특정 수준"(인터페이스 정의 대상 모듈) 기준은 CLAUDE.md 7절에 미정이므로 임시로 스킬 기본값(컴포넌트 경계 인터페이스를 구현하는 모듈)을 쓴다. 이 문서의 모든 모듈은 ARCH-I 를 구현하므로 모두 인터페이스 정의 대상이다. `static` 보조 함수는 비공개이며 인터페이스가 없다.
 
 ## 1. 공통 규칙
@@ -86,7 +86,7 @@ typedef struct { ecl_decision_t decision; ecl_state_t state; unsigned warnings; 
 | DD-M-001 | input_validation | 원시 입력을 검사해 필드별 유효성·신선도가 있는 검증 입력을 만든다. | ARCH-C-001 | REQ-F-001~005, REQ-S-003, REQ-S-008, REQ-Q-002, REQ-Q-004 | DD-I-001 |
 | DD-M-002 | command_intake | 원시 운전자 명령에서 첫 유효 명령 1건을 채택하고 거절 이유를 만든다. | ARCH-C-002 | REQ-F-006~009, 018, 019 | DD-I-002 |
 | DD-M-003 | status_eval | 검증 입력에서 상태와 경고코드를 정한다. | ARCH-C-003 | REQ-F-014, REQ-S-003, REQ-S-009 | DD-I-003 |
-| DD-M-004 | rule_engine | 규칙표 순위에 따라 도어별 출력과 이유코드를 결정한다 (이터 1: 규칙 1, HOLD / 이터 2: 규칙 1~3, HOLD). | ARCH-C-004 | REQ-F-010, 011, 012, 017, 020, 028, 037; REQ-S-004 | DD-I-004 |
+| DD-M-004 | rule_engine | 규칙표 순위에 따라 도어별 출력과 이유코드를 결정한다 (이터 1: 규칙 1, HOLD / 이터 2: 규칙 1~3, HOLD / 이터 3: 규칙 1~8, HOLD, override). | ARCH-C-004 | REQ-F-010, 011, 012, 017, 020, 028, 037; REQ-S-004 | DD-I-004 |
 | DD-M-006 | controller | 평가주기마다 모듈을 순서대로 호출하고 확정 출력을 보관한다. | ARCH-C-006 | REQ-F-013, 015, 016, REQ-Q-001, REQ-Q-003 | DD-I-006 |
 | DD-M-009 | ecl_types | 공유 데이터 형식만 정의한다 (동작 없음). | ARCH-C-009 | REQ-C-001, REQ-C-005 | DD-I-009 |
 
@@ -189,3 +189,18 @@ ECL_NODISCARD ecl_status_t ecl_controller_step(ecl_controller_t* ctl, const ecl_
 - 규칙 3 `rule_approach`: 좌/우 접근위험이 각각 유효한 TRUE 이면 해당 도어 LOCK, priority APPROACH, reason APPROACH_RISK_HOLD (REQ-S-002, S-006, S-007). 해제 요청은 규칙 8(이터 3)이 순위가 낮아 적용되지 않으므로 억제된다.
 - HOLD 이유(`hold_reason`): `all_valid == 0` 이면 INPUT_STALE/INPUT_INVALID, 아니면 `crash_status == PENDING` 이면 CRASH_PENDING, 아니면 NONE (REQ-F-029, 입력 오류 이유가 우선).
 - `ecl_rule_decide` 시그니처는 그대로다. override 메모리 인자는 이터레이션 3 에서 추가한다.
+
+### 이터레이션 3 (rule_engine, controller)
+
+- **시그니처**: `ecl_rule_decide(in, cmd, confirmed, memory, out)` — `ecl_rule_memory_t* memory`(좌/우 도어별 `has_first`, `first_time_s`, `override_active`) 인자를 추가했다 (ARCH-I-004 와 일치). 규칙 함수는 `rule_context_t`(in, cmd, confirmed, 이번 주기가 반영된 memory)를 받아 `rule_effect_t` 를 돌려준다.
+- **제어기**: `ecl_controller_t` 가 `memory` 를 보관한다. 평가주기는 memory 의 사본으로 계산하고 모든 단계가 성공했을 때만 확정 결정과 memory 를 함께 갱신한다 (오류 주기는 어느 쪽도 바꾸지 않는다).
+- **규칙 4~8**: 4 EMERGENCY_RELEASE(fire > overtemp > adult 순으로 이유를 정함), 5 IGNITION_OFF, 6 ISOFIX(도어별, 이유는 좌 우선), 7 AUTO_LOCK(유효 속도 ≥ 3.0), 8 DRIVER_CMD(채택된 명령, 모든 필수 입력 유효, 정지; 대상 도어에만 적용).
+- **해석 결정**
+  - 규칙 4 는 개별 신호가 유효한 TRUE 이면 적용된다. 다른 신호가 INVALID 여도 막지 않는다 (REQ-F-025). SRS 1.3절에 명시했다.
+  - 규칙 8 은 REQ-F-021 문구대로 모든 필수 입력이 유효할 때만 적용한다 (기존 표의 "속도, 명령"을 정정). 이유: 접근위험 같은 안전 입력이 INVALID 인데 해제 명령을 적용하는 것을 막는다.
+  - 이동 중에 채택된 명령은 `command_note = CMD_REJECTED_MOVING` (REQ-F-035). 속도가 INVALID 이면 이동 여부를 알 수 없으므로 적용도 노트도 하지 않는다.
+- **override (REQ-F-023, REQ-F-036)**
+  - "해제 요청" = 채택된 UNLOCK 명령 + 모든 필수 입력 유효 + 정지. 접근위험이 유효한 TRUE 인 도어가 대상에 포함되면 첫 요청 시각(명령의 요청 시각 = 입력 timestamp)을 기억하고(규칙 3 이 LOCK 유지, APPROACH_RISK_HOLD), 이후 요청이 첫 요청보다 늦고 10.0 s 이하이면 override 가 된다. 10.0 s 를 넘기면 새 첫 요청으로 보며, 같은 시각이거나 과거이면 변화 없음.
+  - override 상태의 도어는 규칙 3 에서 제외되어 그 주기에 규칙 8 이 RELEASE 를 적용하고 이유는 OVERRIDE. 이후 주기에는 새 규칙이 없으면 RELEASE 가 유지(HOLD)되고, 이동을 시작하면 규칙 7 이 다시 LOCK 한다 (override 가 이동 중 해제를 유지하지 않도록 한 선택, OQ-02 와 함께 OEM 확인 필요).
+  - 접근위험이 유효한 FALSE 가 되면 기억과 override 를 지운다. INVALID 이면 기억을 바꾸지 않는다.
+- **기본 정상 입력 변경**: 시험의 `ValidRaw()` 속도를 10 → 0 km/h(정지)로 바꿨다. 규칙 7 이 구현되면서 10 km/h 는 자동 잠금을 일으키기 때문이다.
