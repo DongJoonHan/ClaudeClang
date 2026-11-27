@@ -184,3 +184,6 @@
 - Claude Code `Stop` 훅(`.claude/hooks/lizard-check.sh`)으로 구현 종료 시 Lizard 검사, 통과/차단/복구 동작 검증.
 - Jenkins LTS(포트 8080, Docker Compose, JCasC, 플러그인 사전 설치)와 `ci/Jenkinsfile` 작성.
 - `.gitattributes`(LF 고정), `.gitignore` 추가. `CLAUDE.md`를 구축 상태에 맞게 갱신.
+- Jenkins 구축 중 해결한 문제: (5) `cloc` 플러그인이 업데이트 센터에서 제거되어 설치 실패 → CLOC 결과를 CSV로 만들어 Plot 플러그인으로 표시; (6) Git 플러그인이 `file://` 로컬 체크아웃을 차단 → `-Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true`; (7) 빌드 트리거 POST가 403 → CSRF 크럼 사용.
+- Jenkins 검증: 작업 `ClaudeClang`(멀티브랜치) 생성, 플러그인 90개 설치, `feature/dev-environment` 빌드 성공(13단계). 제품 코드가 있는 임시 브랜치로 시험 13개·커버리지 3종·Cppcheck/Lizard/HITL/Doxygen 이슈·Plot·HTML 리포트·산출물 게시를 확인했고, 위반을 넣은 임시 브랜치에서 Lizard·Doxygen·단위 MC/DC 단계가 FAILED로 표시되고 빌드가 FAILURE가 되는 것을 확인(임시 브랜치와 Jenkins 작업은 삭제함).
+- PR: `feature/dev-environment` → `develop` 생성, 병합하지 않음.
