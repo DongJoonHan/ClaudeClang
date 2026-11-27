@@ -21,5 +21,6 @@ RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
 COPY casc/ /usr/share/jenkins/casc_configs/
 COPY init.groovy.d/ /usr/share/jenkins/ref/init.groovy.d/
 
+# ALLOW_LOCAL_CHECKOUT: 원본이 이 PC의 저장소(file:///repo-src, 읽기 전용 마운트)이므로 로컬 체크아웃을 허용한다.
 ENV CASC_JENKINS_CONFIG=/usr/share/jenkins/casc_configs \
-    JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
+    JAVA_OPTS="-Djenkins.install.runSetupWizard=false -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true"
