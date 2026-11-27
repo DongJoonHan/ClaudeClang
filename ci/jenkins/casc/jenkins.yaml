@@ -1,0 +1,44 @@
+jenkins:
+  systemMessage: "ClaudeClang CI — 빌드 이미지 claudeclangbuild에서 빌드·검사를 실행합니다."
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+
+jobs:
+  - script: >
+      multibranchPipelineJob('ClaudeClang') {
+        displayName('ClaudeClang')
+        description('Gitflow 브랜치(develop, feature/*, release/*, hotfix/*, main)를 자동으로 찾아 ci/Jenkinsfile로 빌드한다.')
+        branchSources {
+          git {
+            id('claudeclang-local-repo')
+            remote('file:///repo-src')
+          }
+        }
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('ci/Jenkinsfile')
+          }
+        }
+        orphanedItemStrategy {
+          discardOldItems {
+            numToKeep(20)
+          }
+        }
+        triggers {
+          periodicFolderTrigger {
+            interval('1m')
+          }
+        }
+      }

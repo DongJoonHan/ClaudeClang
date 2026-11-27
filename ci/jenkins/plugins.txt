@@ -1,0 +1,20 @@
+# 설치 완료 상태로 구성하는 Jenkins 플러그인 (ID:버전, latest는 이미지 빌드 시점의 최신)
+# 구성 / 인증
+configuration-as-code:latest
+job-dsl:latest
+credentials:latest
+# 파이프라인
+workflow-aggregator:latest
+pipeline-stage-view:latest
+pipeline-graph-view:latest
+git:latest
+timestamper:latest
+ws-cleanup:latest
+build-timeout:latest
+# 결과 확인
+junit:latest
+warnings-ng:latest
+coverage:latest
+htmlpublisher:latest
+cloc:latest
+plot:latest

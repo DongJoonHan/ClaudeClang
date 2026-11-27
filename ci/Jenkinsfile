@@ -1,0 +1,134 @@
+// ClaudeClang CI 파이프라인 (스크립티드)
+//
+// 모든 빌드·검사는 개발 환경과 같은 이미지(claudeclangbuild)에서 ci/scripts/*.sh 로 실행한다.
+// 한 단계가 실패해도 나머지 단계를 끝까지 실행해 결과를 Jenkins에서 모두 볼 수 있게 하고,
+// 마지막에 하나라도 실패했으면 빌드 전체를 실패로 만든다 (PR 병합 조건 = 빌드 성공 + 품질 기준 충족).
+//
+// 합격 기준 (CLAUDE.md 2절)
+//   단위 테스트  성공률 100% + MC/DC 100%      통합 테스트  성공률 100% + 함수 커버리지 100%
+//   시스템       요구사항 커버리지 100%          Cppcheck 0건(예외 없음), Lizard CCN<=10 / 80라인 이하,
+//   주석         Doxygen 경고 0건 + Human-in-the-Loop 태그
+// TDD 테스트는 단위 테스트와 분리해 결과·커버리지만 보고한다.
+
+def buildImage = 'claudeclangbuild:latest'
+def jenkinsContainer = 'claudeclang-jenkins'   // --volumes-from 으로 작업 공간을 빌드 컨테이너와 공유
+
+// 빌드 이미지에서 스크립트를 실행한다. vars 는 컨테이너 환경변수.
+def inBuildImage(String image, String container, String command, Map vars = [:]) {
+    def envArgs = vars.collect { k, v -> "-e ${k}='${v}'" }.join(' ')
+    sh "docker run --rm --volumes-from ${container} -w '${env.WORKSPACE}' ${envArgs} ${image} ${command}"
+}
+
+// 실패해도 다음 단계로 진행하되 단계와 빌드를 실패로 표시한다. finally 로 리포트를 항상 게시한다.
+def gated(String name, Closure body, Closure publish = null) {
+    stage(name) {
+        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            try {
+                body()
+            } finally {
+                if (publish != null) {
+                    publish()
+                }
+            }
+        }
+    }
+}
+
+node {
+    timestamps {
+        timeout(time: 90, unit: 'MINUTES') {
+            stage('Checkout') {
+                cleanWs()
+                checkout scm
+                sh 'chmod +x ci/scripts/*.sh docker/*.sh || true'
+            }
+
+            gated('Environment') {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/tool-versions.sh')
+            }
+
+            // 파이프라인 자체(이미지, 스크립트, 품질 게이트)가 정상인지 참조 프로젝트로 확인한다.
+            gated('Toolchain self-check') {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/smoke.sh')
+            }
+
+            gated('Build') {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/build.sh')
+            }
+
+            gated('Static analysis: Cppcheck', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-cppcheck.sh')
+            }, {
+                recordIssues(tools: [cppCheck(pattern: 'build/reports/cppcheck.xml')],
+                             id: 'cppcheck', name: 'Cppcheck',
+                             qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'FAILURE']])
+            })
+
+            gated('Metrics: Lizard', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-lizard.sh')
+            }, {
+                recordIssues(tools: [gcc(id: 'lizard', name: 'Lizard', pattern: 'build/reports/lizard.txt')],
+                             id: 'lizard', name: 'Lizard (CCN/Length)',
+                             qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'FAILURE']])
+            })
+
+            gated('Comments: CLOC + HITL', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-comments.sh')
+            }, {
+                recordIssues(tools: [gcc(id: 'hitl', name: 'HITL tags', pattern: 'build/reports/hitl.txt')],
+                             id: 'hitl', name: 'Human-in-the-Loop tags',
+                             qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'FAILURE']])
+                step([$class: 'ClocPublisher', reportFiles: 'build/reports/cloc.xml',
+                      sourceEncoding: 'UTF-8'])
+            })
+
+            gated('Doxygen', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-doxygen.sh')
+            }, {
+                recordIssues(tools: [doxygen(pattern: 'build/reports/doxygen-warnings.txt')],
+                             id: 'doxygen', name: 'Doxygen',
+                             qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'FAILURE']])
+            })
+
+            // TDD 테스트는 단위 테스트와 분리: 결과·커버리지를 보고하되 합격 기준은 없다.
+            gated('Tests: TDD (report only)', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/run-tests.sh tdd')
+            }, {
+                junit testResults: 'build/reports/tdd/junit.xml', allowEmptyResults: true
+                recordCoverage(tools: [[parser: 'LCOV', pattern: 'build/reports/tdd/lcov.info']],
+                               id: 'tdd-coverage', name: 'TDD Coverage (report only)')
+            })
+
+            gated('Tests: Unit (MC/DC 100%)', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/run-tests.sh unit')
+            }, {
+                junit testResults: 'build/reports/unit/junit.xml', allowEmptyResults: true
+                recordCoverage(tools: [[parser: 'LCOV', pattern: 'build/reports/unit/lcov.info']],
+                               id: 'unit-coverage', name: 'Unit Coverage')
+                publishHTML(target: [reportDir: 'build/reports/unit/html', reportFiles: 'index.html',
+                                     reportName: 'Unit Coverage (LLVM, MC/DC)', keepAll: true,
+                                     allowMissing: true, alwaysLinkToLastBuild: true])
+            })
+
+            gated('Tests: Integration (function 100%)', {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/run-tests.sh integration')
+            }, {
+                junit testResults: 'build/reports/integration/junit.xml', allowEmptyResults: true
+                recordCoverage(tools: [[parser: 'LCOV', pattern: 'build/reports/integration/lcov.info']],
+                               id: 'integration-coverage', name: 'Integration Coverage')
+                publishHTML(target: [reportDir: 'build/reports/integration/html', reportFiles: 'index.html',
+                                     reportName: 'Integration Coverage (LLVM)', keepAll: true,
+                                     allowMissing: true, alwaysLinkToLastBuild: true])
+            })
+
+            gated('Tests: System (requirement coverage 100%)') {
+                inBuildImage(buildImage, jenkinsContainer, 'ci/scripts/check-req-coverage.sh')
+            }
+
+            stage('Archive') {
+                archiveArtifacts artifacts: 'build/reports/**, build/doxygen/**', allowEmptyArchive: true,
+                                 fingerprint: true
+            }
+        }
+    }
+}
