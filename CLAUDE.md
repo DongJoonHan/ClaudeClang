@@ -4,8 +4,22 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 ## 현재 상태
 
-- 소스 코드, 빌드 설정, 테스트는 아직 없습니다.
-- 개발 환경(Docker 이미지, 빌드 설정)과 CI(Jenkins)는 **정의만 되어 있고 아직 구축되지 않았습니다** (아래 4, 5절).
+- 제품 소스 코드(`src/`)와 제품 테스트는 아직 없습니다.
+- 개발 환경(Docker 이미지 `claudeclangbuild`, CMake 빌드), 품질 검사 스크립트(`ci/scripts/`), Lizard Hook, CI(Jenkins)는 **구축되어 있습니다** (4, 5절).
+- 파이프라인이 정상인지 확인하는 참조 프로젝트가 `ci/smoke/`에 있고, 새 코드의 작성 템플릿(HITL 주석, 단일 return, 상태 반환, GoogleTest/GMock)으로도 쓴다.
+
+### 자주 쓰는 명령
+
+모든 명령은 빌드 이미지 안에서 실행한다 (개발·CI 동일 환경).
+
+| 목적 | 명령 |
+|---|---|
+| 이미지 빌드 | `bash docker/build.sh` |
+| 컨테이너 셸 | `bash docker/run.sh` |
+| 전체 품질 검사 | `bash docker/run.sh ci/scripts/run-all.sh` |
+| 파이프라인 자체 점검(참조 프로젝트) | `bash docker/run.sh ci/scripts/smoke.sh` |
+| 단계별 | `ci/scripts/{build,check-cppcheck,check-lizard,check-comments,check-doxygen,check-req-coverage}.sh`, `ci/scripts/run-tests.sh <tdd\|unit\|integration>` |
+| Jenkins 시작 | `docker compose -f ci/jenkins/docker-compose.yml --env-file ci/jenkins/.env up -d --build` |
 
 ## 구조
 
@@ -76,12 +90,13 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 ### 2.2 정적 분석
 
 - **Cppcheck** 룰 대상 100% 만족. **예외 처리는 없다**: `--suppress`, 소스 내 `cppcheck-suppress`, 억제 파일을 사용하지 않는다. 지적은 코드를 고쳐서 해결한다.
-- 실행 기준(가정, 변경 가능): `--enable=all --inconclusive --error-exitcode=1`, 빌드의 `compile_commands.json` 사용. 시스템 헤더 경고는 억제하지 말고 `-I`/`--library`로 해결한다.
+- 점검 규칙(구현 완료, `ci/scripts/check-cppcheck.sh`): `error`(항상) + `warning, style, performance, portability`, `--inconclusive --check-level=exhaustive`, 빌드의 `compile_commands.json` 기준(서드파티 `-isystem` 헤더 제외).
+- `--enable=all`에서 **점검 목록에서 뺀 것은 세 가지**이며, 개별 지적을 억제하는 것이 아니다: `information`(checkersReport 같은 메타 메시지), `missingInclude`(헤더 누락은 `-Werror` 빌드가 이미 실패시킴), `unusedFunction`(googletest 설정이 `TEST()` 본문을 호출되지 않는 함수로 전개하는 오탐이 있고, 제품 함수가 죽은 코드가 아닌지는 통합 시험의 함수 커버리지 100%가 보장함). 이 목록을 바꾸려면 사용자 확인이 필요하다.
 
 ### 2.3 소스 코드 메트릭
 
 - **순환복잡도(CCN) 10 이하**, **함수 길이 80라인 이하** — **Lizard**로 검사한다 (`-C 10 -L 80` 상당, 위반 시 실패).
-- 구현이 끝날 때 **Claude Code Hook으로 자동 검사**한다. (Hook은 아직 구성되지 않았다. `.claude/settings.json`에 구성할 것. CI에서도 같은 검사를 한다.)
+- 구현이 끝날 때 **Claude Code Hook으로 자동 검사**한다. `.claude/settings.json`의 `Stop` 훅이 `.claude/hooks/lizard-check.sh`를 실행한다: `src/`, `include/`, `test/`에 변경된 C++ 파일이 있으면 빌드 이미지의 Lizard로 검사하고, 위반이면 종료 코드 2로 막아 위반 내용을 전달한다 (같은 문제로 3회 연속 막으면 통과시키고 사용자에게 보고하게 한다). CI에서도 같은 검사를 한다.
 
 ### 2.4 주석 — Doxygen + Human in the Loop
 
@@ -141,7 +156,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 | `hotfix/*` | 긴급 수정. `main`에서 분기해 `main`과 `develop`으로 병합. |
 
 - 이터레이션 하나는 보통 `feature/<이터레이션 또는 주제>` 브랜치 하나에서 수행한다.
-- 현재 저장소에는 `main`만 있다. `develop` 브랜치는 아직 만들지 않았다.
+- `develop` 브랜치는 `main`(`4533ada`)에서 분기해 만들었다. 이후 모든 작업은 `develop`에서 분기한 `feature/*` 브랜치에서 하고 PR로 병합한다. `main`/`develop`에 직접 커밋하지 않는다.
 
 ### 3.2 PR과 CI
 
@@ -178,9 +193,20 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 - **개발 빌드와 CI 빌드는 모두 동일한 Docker 이미지**를 사용한다.
 - 이미지명: **`ClaudeCLangBuild`**. Docker는 저장소 이름에 대문자를 허용하지 않으므로, 실제 `docker build -t`에 쓰는 이름은 소문자 `claudeclangbuild`다 (필요 시 버전 태그 `claudeclangbuild:<버전>`).
-- 이미지에 포함: Clang/LLVM 18+(`llvm-cov`, `llvm-profdata` 포함), CMake, Ninja, Cppcheck, Lizard, CLOC, Doxygen, Graphviz, PICT, clang-format, GoogleTest/GMock, Git, Python.
-- 도구 버전은 이미지에 고정하고 빌드 로그에 출력한다.
-- 계획된 위치: `docker/Dockerfile` (**아직 생성되지 않음**).
+- 이미지에 포함: Clang/LLVM(`llvm-cov`, `llvm-profdata` 포함), CMake, Ninja, Cppcheck, Lizard, CLOC, Doxygen, Graphviz, PICT, clang-format, GoogleTest/GMock, Git, Python.
+- 도구 버전은 `docker/Dockerfile`의 `ARG`로 고정하고 CI 첫 단계(`ci/scripts/tool-versions.sh`)에서 출력한다. 현재: Clang/LLVM 23.1.6, GoogleTest v1.18.0, PICT v3.7.4, Lizard 1.26.1, Cppcheck 2.13.0(Ubuntu 24.04 패키지), CMake 3.28.3.
+- 위치: `docker/Dockerfile`, `docker/build.sh`, `docker/run.sh`. 이미지 버전은 `docker/VERSION`.
+
+### 4.2 CMake 구조
+
+- 최상위 `CMakeLists.txt`는 `cmake/ClaudeClang.cmake`의 `cc_setup_project()`를 호출한다. `src/`와 `test/{tdd,unit,integration,system}/`에 `CMakeLists.txt`가 있으면 자동으로 포함한다.
+- 제품 라이브러리는 `cc_add_library()`, 시험 스위트는 `cc_add_test_suite(<suite> SOURCES ... LIBS ...)`로 정의한다 (`ci/smoke/` 참고). 스위트 실행 파일은 `build/test/<suite>/<suite>_tests`이다.
+- 컴파일은 `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`, 커버리지 계측(`-fprofile-instr-generate -fcoverage-mapping -fcoverage-mcdc`, `-O0`)이 기본이다. 시험 스위트는 제품 라이브러리를 whole-archive로 링크해 **시험이 호출하지 않는 제품 함수도 함수 커버리지에 잡히게** 한다.
+
+### 4.3 구현 시 주의 (함수 커버리지)
+
+- 인터페이스 클래스에 `virtual ~I() = default;`를 두면, 시험의 대체 객체가 비어 있는 소멸자를 가질 때 Clang이 기반 소멸자 호출을 만들지 않아 **실행되지 않는 함수**가 되어 함수 커버리지 100%를 막는다. 기반 클래스 포인터로 삭제하지 않는 인터페이스는 **protected non-virtual 소멸자**를 쓴다(C++ Core Guidelines C.35). 기반 포인터로 삭제해야 한다면 시험이 그 경로를 실행해야 한다.
+- 한 결정(조건식)의 조건은 6개 이하로 한다 (LLVM MC/DC 측정 한계).
 
 ---
 
@@ -190,8 +216,12 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 - 필요한 **플러그인은 설치를 완료한 상태**로 구성한다.
 - 테스트, 정적 분석, 커버리지, 메트릭 등의 **결과를 Jenkins 플러그인에서 확인**할 수 있어야 한다.
   - 시험 결과(GoogleTest JUnit XML), 정적 분석(Cppcheck), 메트릭(Lizard), 커버리지(LLVM), 주석률(CLOC)을 각각 플러그인 화면에서 볼 수 있게 구성한다. 사용할 플러그인은 구축 시 확정한다.
-- 빌드는 4.1절의 `ClaudeCLangBuild` 이미지 안에서 실행한다.
-- 계획된 위치: `ci/Jenkinsfile`, `ci/jenkins/` (이미지·플러그인 목록·실행 설정). **아직 생성되지 않음.**
+- 빌드는 4.1절의 `ClaudeCLangBuild` 이미지 안에서 실행한다. Jenkins 컨테이너는 Docker 소켓으로 호스트 Docker에 빌드 컨테이너를 띄우고(`--volumes-from`으로 작업 공간 공유), 이 이미지를 쓴다.
+- 위치: `ci/Jenkinsfile`(파이프라인), `ci/jenkins/`(Jenkins 이미지, `plugins.txt`, JCasC `casc/jenkins.yaml`, `docker-compose.yml`), `ci/scripts/`(개발·CI 공용 검사 스크립트).
+- 접속: `http://localhost:8080`, 계정 `admin`, 비밀번호는 `ci/jenkins/.env`의 `JENKINS_ADMIN_PASSWORD` (git 제외). 작업 `ClaudeClang`은 멀티브랜치 파이프라인이며, 이 PC의 저장소(`/repo-src`로 마운트)에서 Gitflow 브랜치를 1분마다 찾아 `ci/Jenkinsfile`로 빌드한다. **커밋된 상태만 빌드한다.**
+- 파이프라인 단계: Environment → Toolchain self-check(`ci/smoke`로 이미지·게이트 점검) → Build → Cppcheck → Lizard → Comments(CLOC/HITL) → Doxygen → TDD(보고) → Unit(MC/DC) → Integration(함수) → System(요구사항) → Archive. 한 단계가 실패해도 끝까지 실행하고 마지막에 빌드를 실패로 만든다.
+- 결과 확인(플러그인): 시험 결과(JUnit), Cppcheck/Lizard/HITL/Doxygen(Warnings NG), 커버리지(Coverage 플러그인, LCOV), LLVM HTML 리포트(MC/DC 포함, HTML Publisher), 주석률(CLOC).
+- GitHub와의 연동(PR 상태 보고, 병합 차단)은 아직 없다. Jenkins가 로컬 PC에서만 접근 가능해 GitHub webhook을 받을 수 없다. 현재는 Jenkins 빌드 결과를 확인한 뒤 PR을 병합한다.
 
 ---
 
@@ -215,7 +245,8 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 | 항목 | 값 |
 |---|---|
-| 구현 언어 | C++ (Clang 18 이상) |
+| 구현 언어 | C++20 (Clang 18 이상, 현재 이미지는 23.1.6) |
+| 빌드 도구 | CMake + Ninja |
 | 인터페이스 정의 대상 모듈 기준("특정 수준") | 미정 (임시: 2개 이상 모듈이 사용 / 컴포넌트 경계 / 외부 자원 래핑) |
 | 목표 커버리지 | 단위: MC/DC 100%, 통합: 함수 100%, 시스템: 요구사항 100% (2.1절). 스킬의 구문+분기 기본값보다 이 값이 우선 |
 | ISO 25010 판 | 미정 (임시: 2023판) |
