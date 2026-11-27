@@ -24,7 +24,7 @@ EXIT_USAGE = 2
 HITL_TAGS = ("ai_model", "ai_date", "requested_by",
              "human_reviewed", "reviewed_by", "reviewed_date")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$")
-CODE_SUFFIXES = {".h", ".hpp", ".hh", ".cpp", ".cc", ".cxx"}
+CODE_SUFFIXES = {".c", ".h", ".hpp", ".hh", ".cpp", ".cc", ".cxx"}
 DOC_BLOCK_RE = re.compile(r"/\*\*(?![*<])(.*?)\*/", re.S)
 
 

@@ -16,8 +16,8 @@ fi
 
 cd "$CC_PROJECT_DIR" || exit 1
 result=0
-lizard -l cpp -C "$MAX_CCN" -L "$MAX_LINES" -w "${dirs[@]}" > "$REPORT_DIR/lizard.txt" || result=1
-lizard -l cpp --xml "${dirs[@]}" > "$REPORT_DIR/lizard.xml" 2>/dev/null
+lizard -l c -l cpp -C "$MAX_CCN" -L "$MAX_LINES" -w "${dirs[@]}" > "$REPORT_DIR/lizard.txt" || result=1
+lizard -l c -l cpp --xml "${dirs[@]}" > "$REPORT_DIR/lizard.xml" 2>/dev/null
 
 cat "$REPORT_DIR/lizard.txt"
 count="$(grep -c 'warning' "$REPORT_DIR/lizard.txt")"

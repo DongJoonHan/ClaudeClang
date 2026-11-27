@@ -23,11 +23,11 @@ src_dirs() {
     done
 }
 
-# 제품 코드(src/ 아래 .cpp)가 있으면 0, 없으면 1.
+# 제품 코드(src/ 아래 .c, .cpp)가 있으면 0, 없으면 1.
 has_product_code() {
     local count=0
     if [ -d "$CC_PROJECT_DIR/src" ]; then
-        count="$(find "$CC_PROJECT_DIR/src" -name '*.cpp' -o -name '*.cc' -o -name '*.cxx' | wc -l)"
+        count="$(find "$CC_PROJECT_DIR/src" \( -name '*.c' -o -name '*.cpp' -o -name '*.cc' -o -name '*.cxx' \) | wc -l)"
     fi
     [ "$count" -gt 0 ]
 }

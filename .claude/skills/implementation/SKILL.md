@@ -7,7 +7,7 @@ description: A-SPICE(SWE.3 구현) 기준으로 상세 설계를 코드로 구�
 
 공통 위치와 ID 규칙은 프로젝트 루트 `CLAUDE.md`를 따른다. 입력은 확정된 상세 설계다. 코드는 설계를 따르고, 설계에 없는 동작을 임의로 추가하지 않는다. 설계가 틀렸거나 부족하면 코드를 바꾸기 전에 설계를 수정하고 리뷰한다.
 
-대상 언어는 **C++ (Clang 18 이상)**다 (`CLAUDE.md` 4절).
+대상 언어는 **C (C17, Clang 18 이상)**다 (`CLAUDE.md` 4절, 2026-11-27 요구사항 변경으로 확정). 시험 코드만 C++20(GoogleTest/GMock)이다.
 
 구현은 `test-driven-development` 스킬과 함께 **TDD 방식**으로 진행한다. TDD로 만든 테스트는 `test/tdd/`에 두고 단위 테스트(`test/unit/`)와 분리하며, 결과(`docs/test/tdd-report.md`)와 커버리지(`build/cov-tdd`)도 별도로 낸다 (`CLAUDE.md` 1.4절).
 
@@ -18,8 +18,8 @@ description: A-SPICE(SWE.3 구현) 기준으로 상세 설계를 코드로 구�
 
 ### 규칙 B. 반환할 값이 없으면 상태값을 반환한다
 - 정상 실행 여부를 판단할 수 있는 값(상태 코드)을 반환한다.
-- 프로젝트 공통 상태 타입을 하나 정의해 일관되게 쓴다 (예: `enum class Status { Ok = 0, ErrNullArg, ErrRange, ... };`). 오류 값의 의미는 상세 설계의 인터페이스 정의와 일치해야 한다.
-- 호출하는 쪽은 반환 상태를 반드시 확인한다. C++에서는 `[[nodiscard]]`, GCC/Clang에서는 `__attribute__((warn_unused_result))`로 무시를 컴파일 경고로 만든다.
+- 프로젝트 공통 상태 타입을 하나 정의해 일관되게 쓴다 (예: `typedef enum { PROJ_OK = 0, PROJ_ERR_NULL_ARG, PROJ_ERR_RANGE, ... } proj_status_t;` — 접두어로 이름 충돌을 피한다). 오류 값의 의미는 상세 설계의 인터페이스 정의와 일치해야 한다.
+- 호출하는 쪽은 반환 상태를 반드시 확인한다. `__attribute__((warn_unused_result))`(매크로로 감싼다)로 무시를 컴파일 경고로 만든다.
 - 값을 반환하는 함수에서 오류를 표현해야 하면, 반환값은 상태로 하고 결과는 출력 인자(포인터/참조)로 돌려주거나, 값 자체가 오류 표현을 가지는 타입을 쓴다. 설계에서 정한 방식에 따른다.
 
 ### 규칙 C. return은 함수의 마지막에 정확히 한 번만 쓴다
@@ -29,14 +29,14 @@ description: A-SPICE(SWE.3 구현) 기준으로 상세 설계를 코드로 구�
 
 패턴:
 
-```cpp
-[[nodiscard]] Status sensor_read(const Sensor *sensor, std::int32_t *out_value)
+```c
+PROJ_NODISCARD proj_status_t sensor_read(const sensor_t* sensor, int32_t* out_value)
 {
-    Status result = Status::Ok;
+    proj_status_t result = PROJ_OK;
 
-    if ((sensor == nullptr) || (out_value == nullptr))
+    if ((sensor == NULL) || (out_value == NULL))
     {
-        result = Status::ErrNullArg;
+        result = PROJ_ERR_NULL_ARG;
     }
     else
     {
@@ -47,18 +47,18 @@ description: A-SPICE(SWE.3 구현) 기준으로 상세 설계를 코드로 구�
 }
 ```
 
-- 반복문 중간 탈출이 필요하면 루프 조건에 상태 확인을 넣거나(`while ((result == Status::Ok) && (i < n))`) 함수를 분리한다.
+- 반복문 중간 탈출이 필요하면 루프 조건에 상태 확인을 넣거나(`while ((result == PROJ_OK) && (i < n))`) 함수를 분리한다.
 - `main`도 같은 규칙으로 끝에서 한 번 반환한다.
-- 예외: 언어 기능상 불가피한 경우(람다, 템플릿 메타 함수, 생성자·소멸자처럼 반환형이 없는 함수 등)는 설계 문서에 예외와 사유를 적는다. 생성자·소멸자는 반환값을 가질 수 없으므로 자원 획득을 `init()` 상태 반환 함수로 옮기는 것을 권장한다.
+- 예외: 언어 기능상 불가피한 경우는 설계 문서에 예외와 사유를 적는다. 자원 획득·해제는 `init()`/`deinit()` 같은 상태 반환 함수로 만든다.
 
-### 함수 커버리지 주의 (인터페이스 소멸자)
+### 함수 커버리지 주의 (C 코드)
 
-통합 테스트의 합격 기준은 함수 커버리지 100%다. 인터페이스 클래스에 `virtual ~I() = default;`를 두면, 시험용 대체 객체의 소멸자가 비어 있을 때 Clang이 기반 소멸자 호출을 만들지 않아 **실행되지 않는 함수**가 된다. 기반 클래스 포인터로 삭제하지 않는 인터페이스는 **protected non-virtual 소멸자**를 쓴다 (C++ Core Guidelines C.35, 예: `ci/smoke/include/smoke/controller.hpp`). 한 결정(조건식)의 조건은 6개 이하로 유지한다 (LLVM MC/DC 측정 한계).
+통합 테스트의 합격 기준은 함수 커버리지 100%다. 헤더의 `static inline` 함수나 시험이 호출하지 않는 함수는 **실행되지 않는 함수**가 되어 이를 막는다. 헤더에는 선언만 두고 정의는 `.c`에 둔다. 인터페이스는 클래스 대신 **함수 포인터 + `void* context` 구조체**로 정의한다(예: `ci/smoke/include/smoke/controller.h`). 모든 공개 헤더는 `extern "C"`로 감싸 C++ 시험에서 호출할 수 있게 한다. 한 결정(조건식)의 조건은 6개 이하로 유지한다 (LLVM MC/DC 측정 한계).
 
 ## 2. 일반 구현 규칙
 
 - 상세 설계의 이름, 인터페이스, 반환값 정의를 그대로 사용한다.
-- 모듈의 공개 인터페이스는 헤더에만 선언하고, 내부 함수·변수는 `static`(C) 또는 익명 namespace(C++)로 숨긴다. 다른 모듈은 인터페이스(공개 헤더)로만 접근한다.
+- 모듈의 공개 인터페이스는 헤더에만 선언하고, 내부 함수·변수는 `static`으로 숨긴다. 다른 모듈은 인터페이스(공개 헤더)로만 접근한다.
 - 입력 인자 검증은 설계의 사전조건에 따라 수행하고, 위반 시 정의된 오류 상태를 반환한다.
 - 함수는 한 가지 일, 작은 크기, 명확한 이름, 매직 넘버 금지 (상세 설계 스킬 3절과 동일).
 - 주석은 Doxygen 형식이다. 파일 헤더와 모든 함수·클래스 주석에 `@brief`, `@param`, `@return`, 요구사항/설계 ID와 함께 **Human-in-the-Loop 태그**를 반드시 쓴다 (`CLAUDE.md` 2.4절):

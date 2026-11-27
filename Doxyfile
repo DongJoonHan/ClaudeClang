@@ -4,7 +4,7 @@
 PROJECT_NAME           = "ClaudeClang"
 OUTPUT_DIRECTORY       = build/doxygen
 RECURSIVE              = YES
-FILE_PATTERNS          = *.h *.hpp *.cpp *.cc *.cxx
+FILE_PATTERNS          = *.c *.h *.hpp *.cpp *.cc *.cxx
 EXCLUDE_PATTERNS       = */build/*
 EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = NO

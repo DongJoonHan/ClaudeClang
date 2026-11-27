@@ -11,7 +11,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "smoke/clamp.hpp"
+#include "smoke/clamp.h"
 
 namespace
 {
@@ -22,8 +22,8 @@ namespace
  * @satisfies REQ-F-001
  * @technique TDD red-green-refactor
  * @input     value=5, lo=0, hi=10
- * @procedure 1) clamp()를 호출한다.
- * @expected  반환값 == Status::Ok, out == 5
+ * @procedure 1) smoke_smoke_clamp()를 호출한다.
+ * @expected  반환값 == SMOKE_OK, out == 5
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -35,7 +35,7 @@ namespace
 TEST(ClampTddTest, KeepsValueInsideRange)
 {
     int out = 0;
-    EXPECT_EQ(smoke::clamp(5, 0, 10, &out), smoke::Status::Ok);
+    EXPECT_EQ(smoke_clamp(5, 0, 10, &out), SMOKE_OK);
     EXPECT_EQ(out, 5);
 }
 

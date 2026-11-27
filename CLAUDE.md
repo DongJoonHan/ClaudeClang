@@ -96,7 +96,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 ### 2.3 소스 코드 메트릭
 
 - **순환복잡도(CCN) 10 이하**, **함수 길이 80라인 이하** — **Lizard**로 검사한다 (`-C 10 -L 80` 상당, 위반 시 실패).
-- 구현이 끝날 때 **Claude Code Hook으로 자동 검사**한다. `.claude/settings.json`의 `Stop` 훅이 `.claude/hooks/lizard-check.sh`를 실행한다: `src/`, `include/`, `test/`에 변경된 C++ 파일이 있으면 빌드 이미지의 Lizard로 검사하고, 위반이면 종료 코드 2로 막아 위반 내용을 전달한다 (같은 문제로 3회 연속 막으면 통과시키고 사용자에게 보고하게 한다). CI에서도 같은 검사를 한다.
+- 구현이 끝날 때 **Claude Code Hook으로 자동 검사**한다. `.claude/settings.json`의 `Stop` 훅이 `.claude/hooks/lizard-check.sh`를 실행한다: `src/`, `include/`, `test/`에 변경된 C/C++ 파일이 있으면 빌드 이미지의 Lizard로 검사하고, 위반이면 종료 코드 2로 막아 위반 내용을 전달한다 (같은 문제로 3회 연속 막으면 통과시키고 사용자에게 보고하게 한다). CI에서도 같은 검사를 한다.
 
 ### 2.4 주석 — Doxygen + Human in the Loop
 
@@ -118,7 +118,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 예:
 
-```cpp
+```c
 /**
  * @brief   센서 값을 읽는다.
  * @param   sensor     센서 핸들
@@ -172,7 +172,7 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 
 | 항목 | 선택 | 비고 |
 |---|---|---|
-| 개발 언어 | **C++** (Clang **18 이상** 최신 버전) | 표준은 C++20을 권장 (미확정) |
+| 개발 언어 | **C** (C17) — 제품 코드(`src/`, `include/`). 컴파일러는 Clang **18 이상** | 요구사항 변경으로 확정 (2026-11-27). 시험 코드는 C++20 (GoogleTest/GMock은 C++ 전용이므로 제품 C 코드를 C++ 시험에서 호출) |
 | 컴파일러 | Clang/LLVM 18+ | MC/DC(`-fcoverage-mcdc`)에 18 이상 필요 |
 | 빌드 도구 | **CMake + Ninja** (추천) | 아래 추천 근거 참고 |
 | 정적 분석 | Cppcheck | |
@@ -200,12 +200,17 @@ Claude Code가 이 저장소에서 작업할 때 참고하는 프로젝트 안�
 ### 4.2 CMake 구조
 
 - 최상위 `CMakeLists.txt`는 `cmake/ClaudeClang.cmake`의 `cc_setup_project()`를 호출한다. `src/`와 `test/{tdd,unit,integration,system}/`에 `CMakeLists.txt`가 있으면 자동으로 포함한다.
+- 최상위 `project()`는 `LANGUAGES C CXX`다. `cc_setup_project()`가 C17(확장 금지)과 C++20을 설정하고, C·C++ 컴파일러가 모두 Clang 18 이상인지 확인한다.
 - 제품 라이브러리는 `cc_add_library()`, 시험 스위트는 `cc_add_test_suite(<suite> SOURCES ... LIBS ...)`로 정의한다 (`ci/smoke/` 참고). 스위트 실행 파일은 `build/test/<suite>/<suite>_tests`이다.
 - 컴파일은 `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`, 커버리지 계측(`-fprofile-instr-generate -fcoverage-mapping -fcoverage-mcdc`, `-O0`)이 기본이다. 시험 스위트는 제품 라이브러리를 whole-archive로 링크해 **시험이 호출하지 않는 제품 함수도 함수 커버리지에 잡히게** 한다.
 
-### 4.3 구현 시 주의 (함수 커버리지)
+### 4.3 구현 시 주의 (C 코드)
 
-- 인터페이스 클래스에 `virtual ~I() = default;`를 두면, 시험의 대체 객체가 비어 있는 소멸자를 가질 때 Clang이 기반 소멸자 호출을 만들지 않아 **실행되지 않는 함수**가 되어 함수 커버리지 100%를 막는다. 기반 클래스 포인터로 삭제하지 않는 인터페이스는 **protected non-virtual 소멸자**를 쓴다(C++ Core Guidelines C.35). 기반 포인터로 삭제해야 한다면 시험이 그 경로를 실행해야 한다.
+- **언어 경계**: 제품 코드는 `.c`/`.h`(C17, `-std=c17`, 확장 금지)이고 시험 코드는 `.cpp`(C++20)다. 모든 공개 헤더는 `#ifdef __cplusplus extern "C" { #endif`로 감싸 C++ 시험에서 호출할 수 있게 한다. 제품 코드에 C++ 기능을 쓰지 않는다.
+- **인터페이스**: 객체 지향 클래스 대신 **함수 포인터 + 불투명 문맥(`void* context`)** 구조체로 정의한다(`ci/smoke/include/smoke/controller.h`의 `smoke_sensor_t`). 시험은 GoogleMock 객체를 문맥으로 넘기는 어댑터 함수로 대체한다(`ci/smoke/test/unit/controller_test.cpp`의 `MockSensor`).
+- **반환값 무시 방지**: 상태를 반환하는 함수는 `__attribute__((warn_unused_result))`(`SMOKE_NODISCARD` 형태의 매크로)를 붙인다. 컴파일의 `-Werror`가 무시를 오류로 만든다.
+- **함수 커버리지**: 헤더의 `static inline` 함수와 시험이 호출하지 않는 함수는 "실행되지 않는 함수"가 되어 통합 테스트의 함수 커버리지 100%를 막는다. 헤더에는 선언만 두고 정의는 `.c`에 둔다. 모든 공개 함수는 통합 시험이 실행해야 한다.
+- **콜백 매개변수**: Cppcheck는 함수 포인터로 쓰이는 함수의 매개변수가 const 가능하면 `constParameterCallback`을 지적한다. 억제하지 말고 실제로 상태를 바꾸거나 읽기 전용이 맞도록 설계를 정리한다.
 - 한 결정(조건식)의 조건은 6개 이하로 한다 (LLVM MC/DC 측정 한계).
 
 ---
@@ -258,7 +263,7 @@ CI는 두 계층이며 둘 다 4.1절의 같은 이미지(`docker/Dockerfile`)�
 
 | 항목 | 값 |
 |---|---|
-| 구현 언어 | C++20 (Clang 18 이상, 현재 이미지는 23.1.6) |
+| 구현 언어 | **C17** (제품 코드), 시험 코드 C++20 (Clang 18 이상, 현재 이미지는 23.1.6). 2026-11-27 요구사항 변경으로 C++에서 C로 확정 |
 | 빌드 도구 | CMake + Ninja |
 | 인터페이스 정의 대상 모듈 기준("특정 수준") | 미정 (임시: 2개 이상 모듈이 사용 / 컴포넌트 경계 / 외부 자원 래핑) |
 | 목표 커버리지 | 단위: MC/DC 100%, 통합: 함수 100%, 시스템: 요구사항 100% (2.1절). 스킬의 구문+분기 기본값보다 이 값이 우선 |

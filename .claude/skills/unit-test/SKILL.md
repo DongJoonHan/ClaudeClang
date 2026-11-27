@@ -7,7 +7,7 @@ description: A-SPICE(SWE.4) 기준으로 단위 테스트를 설계·작성·실
 
 공통 위치와 ID 규칙은 프로젝트 루트 `CLAUDE.md`를 따른다. 테스트의 기준은 **상세 설계**(와 그 인터페이스 정의)다. 코드가 아니라 설계에서 기대값을 도출한다.
 
-프레임워크는 **Google Test / Google Mock**, 언어는 C++(Clang 18+)다. 단위 테스트는 `test/unit/`에 둔다. 구현 단계의 TDD 테스트(`test/tdd/`)와는 **분리**되며, 이 스킬의 커버리지에 TDD 테스트를 합산하지 않는다.
+프레임워크는 **Google Test / Google Mock**, 제품 코드는 C(C17), 시험 코드는 C++20(Clang 18+)이다. 제품 헤더의 `extern "C"` 선언으로 C 함수를 호출한다. 단위 테스트는 `test/unit/`에 둔다. 구현 단계의 TDD 테스트(`test/tdd/`)와는 **분리**되며, 이 스킬의 커버리지에 TDD 테스트를 합산하지 않는다.
 
 ## 1. 필수 규칙
 
@@ -65,7 +65,7 @@ IF [mode] = "INIT" THEN [enable] = "false";
  * @input     sensor = 유효한 핸들, out_value = NULL
  * @procedure 1) 유효한 sensor 핸들을 준비한다.
  *            2) out_value = NULL로 sensor_read()를 호출한다.
- * @expected  반환값 == Status::ErrNullArg, 하드웨어 읽기 함수는 호출되지 않음
+ * @expected  반환값 == PROJ_ERR_NULL_ARG, 하드웨어 읽기 함수는 호출되지 않음
  *
  * @ai_model        claude-sonnet-5-5
  * @ai_date         2026-11-27
@@ -84,7 +84,7 @@ TEST(SensorReadTest, ReturnsErrNullArgWhenOutValueIsNull)
 
 ## 5. Stub/Mock 지침 (Google Mock)
 
-대체는 인터페이스(순수 가상 클래스 또는 링크 시점 대체)를 통해 하고, Google Mock(`MOCK_METHOD`)을 사용한다.
+대체는 인터페이스(함수 포인터 + `void* context` 구조체의 어댑터, 또는 링크 시점 대체)를 통해 하고, Google Mock(`MOCK_METHOD`)을 사용한다. 어댑터 예: `ci/smoke/test/unit/controller_test.cpp`의 `MockSensor`.
 
 - 대상 모듈이 의존하는 **다른 모듈의 인터페이스**만 대체한다. 시험 대상의 내부 함수를 Mock하지 않는다.
 - 하드웨어·OS·시간·난수처럼 단위 시험이 통제할 수 없는 외부 의존에 우선 사용한다.
